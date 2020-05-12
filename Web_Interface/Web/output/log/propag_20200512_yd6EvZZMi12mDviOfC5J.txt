@@ -1,0 +1,100 @@
+Start - Back propagation : Tue May 12 22:42:47 2020
+------------------ 
+Filename : uploads/preset/Reticle_LaHC.png
+Destination folder : output/propagation/yd6EvZZMi12mDviOfC5J
+Starting depth : 0.24
+Ending depth : 0.34
+step : 0.005
+Lambda : 5.32e-07
+Pixel size : 7e-06
+Zero padding : 0
+------------------------------------
+Loading uploads/preset/Reticle_LaHC.png
+Creating output directory output/propagation/yd6EvZZMi12mDviOfC5J/
+Writting image with depth 0.34 - Writting image with depth Writting image with depth 0.3Writting image with depth 0.295 - 12 out of 21 - 11 out of 21
+
+Writting image with depth 0.250.24Writting image with depth 0.305Writting image with depth  - 13 out of 21
+Writting image with depth 0.26 - 4 out of 21Writting image with depth 
+0.27 - 6 out of 21 - 
+0.29 - 10 out of 21
+20 out of 21
+Writting image with depth 0.315 - 15 out of 21Writting image with depth 
+Writting image with depth 0.33 - 18 out of 21
+Writting image with depth 0.28 - 8 out of 21
+0 out of 21
+Writting image with depth 0.31 - 14 out of 21
+Writting image with depth 0.335 - 19 out of 21
+0.32 - 16 out of 21
+Writting image with depth 0.325 - 17 out of 21 - 2 out of 21
+
+Image 10 computed in 748 ms. 4.7619% completed!
+Image 14 computed in 766 ms. 9.52381% completed!
+Image 19 computed in 784 ms. 14.2857% completed!
+Image 17 computed in 840 ms. 19.0476% completed!
+Image 12 computed in 841 ms. 23.8095% completed!
+Image 13 computed in 850 ms. 28.5714% completed!
+Image 0 computed in 865 ms. 33.3333% completed!
+Writting image with depth 0.245 - 1 out of 21
+Image 20 computed in 872 ms. 38.0952% completed!
+Image 16 computed in 873 ms. 42.8571% completed!
+Image 2 computed in 879 ms. 47.619% completed!
+Writting image with depth 0.255 - 3 out of 21
+Image 15 computed in 888 ms. 52.381% completed!
+Image 8 computed in 892 ms. 57.1429% completed!
+Writting image with depth 0.285 - 9 out of 21
+Image 4 computed in 907 ms. 61.9048% completed!
+Writting image with depth 0.265 - 5 out of 21
+Image 18 computed in 915 ms. 66.6667% completed!
+Image 11 computed in 919 ms. 71.4286% completed!
+Image 6 computed in 934 ms. 76.1905% completed!
+Writting image with depth 0.275 - 7 out of 21
+Image 3 computed in 387 ms. 80.9524% completed!
+Image 1 computed in 414 ms. 85.7143% completed!
+Image 9 computed in 392 ms. 90.4762% completed!
+Image 7 computed in 355 ms. 95.2381% completed!
+Image 5 computed in 385 ms. 100% completed!
+0 - Max value : 0.415861 _ Min value : 0.00187538
+1 - Max value : 0.469286 _ Min value : 0.00187538
+2 - Max value : 0.512065 _ Min value : 0.00116067
+3 - Max value : 0.512065 _ Min value : 0.000687232
+4 - Max value : 0.556167 _ Min value : 6.55753e-05
+5 - Max value : 0.675077 _ Min value : 6.55753e-05
+6 - Max value : 0.675077 _ Min value : 5.2179e-05
+7 - Max value : 0.675077 _ Min value : 2.16466e-05
+8 - Max value : 0.675077 _ Min value : 2.16466e-05
+9 - Max value : 0.675077 _ Min value : 2.16466e-05
+10 - Max value : 0.675077 _ Min value : 1.89522e-05
+11 - Max value : 0.675077 _ Min value : 9.20763e-06
+12 - Max value : 0.675077 _ Min value : 9.20763e-06
+13 - Max value : 0.675077 _ Min value : 9.20763e-06
+14 - Max value : 0.675077 _ Min value : 9.20763e-06
+15 - Max value : 0.675077 _ Min value : 9.20763e-06
+16 - Max value : 0.675077 _ Min value : 9.20763e-06
+17 - Max value : 0.675077 _ Min value : 9.20763e-06
+18 - Max value : 0.675077 _ Min value : 9.20763e-06
+19 - Max value : 0.675077 _ Min value : 9.20763e-06
+20 - Max value : 0.675077 _ Min value : 9.20763e-06
+output/propagation/yd6EvZZMi12mDviOfC5J/res0.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res1.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res2.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res3.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res4.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res5.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res6.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res7.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res8.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res9.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res10.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res11.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res12.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res13.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res14.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res15.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res16.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res17.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res18.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res19.png saved
+output/propagation/yd6EvZZMi12mDviOfC5J/res20.png saved
+Completed - Tue May 12 22:42:49 2020
+
+Elapsed time : 1810 ms
