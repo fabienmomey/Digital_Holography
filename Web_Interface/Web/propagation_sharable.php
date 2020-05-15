@@ -196,7 +196,7 @@ function imageZoom(imgID, resultID) {
 <br>
     <h2>Results</h2>
 
-    <!-- Slider -->
+    <!-- Slider Profondeur -->
 
     <form>
         <label for="z_slider">Depth <span id="depth"></span>: </label>
@@ -214,6 +214,13 @@ function imageZoom(imgID, resultID) {
   <div id="myresult" class="img-zoom-result w3-half"></div>
 </div>
 </div>
+
+    <!-- Slider Zoom -->
+
+    <form>
+        <label for="slider_zoom">Zoom</label>
+     <input type="range" class="slider" min="100" max="636" value="0" id="slider_zoom">
+    </form>
 
  
 

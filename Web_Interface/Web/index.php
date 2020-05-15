@@ -90,15 +90,11 @@ body {font-family: "Roboto", sans-serif; color: black;}
     </div><br>
     </div>
 
+  <!-- Footer -->
+
     <footer class="w3-container w3-padding-64 w3-center w3-opacity w3-light-grey w3-xlarge">
-  <i class="fa fa-facebook-official w3-hover-opacity"></i>
-  <i class="fa fa-instagram w3-hover-opacity"><a href="https://www.facebook.com/LabHubertCurien/"></a></i>
-  <i class="fa fa-snapchat w3-hover-opacity"></i>
-  <i class="fa fa-pinterest-p w3-hover-opacity"></i>
-  <i class="fa fa-twitter w3-hover-opacity"></i>
-  <i class="fa fa-linkedin w3-hover-opacity"></i>
-  <p class="w3-medium"><a href="https://laboratoirehubertcurien.univ-st-etienne.fr/en/index.html" target="_blank">Laboratoire Hubert Curien</a></p>
-</footer>
+      <p class="w3-medium"><a href="https://laboratoirehubertcurien.univ-st-etienne.fr/en/index.html" target="_blank">Laboratoire Hubert Curien</a></p>
+    </footer>
 
 <script>
 // Open and close the sidebar on medium and small screens
