@@ -1,11 +1,32 @@
+#pragma once
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
 using namespace std;
 using namespace cv;
 
-enum MethodeCalcul {
-    CALCUL_MODULE = 0,  //Pour le calcul du module
-    CALCUL_PHASE = 1    //Pour le calcul de la phase
+enum MethodeCalcul //Méthode de calcul pour des complexes
+{
+    CALCUL_MODULE,  //Pour le calcul du module
+    CALCUL_PHASE    //Pour le calcul de la phase
+};
+
+enum TYPE_HOLOGRAM //Le type d'hologramme
+{
+    COMPLEXE,   //Pour un hologramme complexe
+    INTENSITE   //Pour un hologramme intensité
+};
+
+enum TYPE_OBJ //Le type d'objet
+{
+    DEPHASING,  //Si l'objet est purement déphasant
+    ABSORBING   //Si l'objet est purement absorbant
+};
+
+enum KERNEL_TYPE
+{
+    HZ,
+    GZ_DEPHASING,
+    GZ_ABSORBING
 };
 
 /*
@@ -23,16 +44,16 @@ struct Parametres
 {
     // INSTRUMENTAL
 
-    double z = 10e-6;
-    double mag = 50;
-    double lambda = 600e-9;
-    double n0 = 1;
+    double z = 10e-6;                   // Distance du capteur du plan (m)
+    double mag = 50;                    // Grossissement de l'objectif
+    double lambda = 600e-9;             // Longueur d'onde (m)
+    double n0 = 1;                      // Indice de réfraction moyen (non obligatoire)
 
     // DIGITAL
 
-    double pixel_size = 1e-6 / mag;
-    int width = 1024;
-    int height = 1024;
+    double pixel_size = 1e-6 / mag;     // Taille des pixels (m)
+    int width = 1024;                   // Largeur de la vue en pixels
+    int height = 1024;                  // Hauteur de la vue en pixels
 };
 
 /*
@@ -42,18 +63,30 @@ Calcul l'histogramme pour une image (couleur ou niveau de gris)
 */
 void calcul_histogramme(const Mat& image_initiale, Mat& image_hist);
 
-//void transformee_fourier(const Mat& image_initiale, Mat& im_fourier, Mat& phase_img);
-//void transformee_fourier(const Mat& image_initiale, const Size& new_taille, Mat& im_fourier, Mat& phase_img);
-//void TF_inverse(const Mat& image_initiale, const Mat& phase_img, Mat& tf_inverse);
-//void convolution(const Mat& image_initiale, const Mat& kernel, Mat& im_convolution);
+/*
+Multiplie 2 matrices éléments par éléments dont une matrice est réelle et l'autre en notation complexe : M * (A + iB) = MA + iMB
+<paramètre : mat_simple> Le pointeur vers la matrice réelle à multiplier (non modifiable)
+<paramètre : mat_complexe> Le pointeur vers la matrice complexe à multiplier (non modifiable)
+<paramètre : mat_res> Le pointeur vers la matrice résultat de la multiplication
+*/
+void my_multiply(const Mat& mat_simple, const Mat& mat_complexe, Mat& mat_res);
 
 /*
-Multiplie 2 images en notation complexe : (A + iB) * (X + iY) = (AX - BY) + i(AY + BX)
+Multiplie 2 matrices en notation complexe éléments par éléments : (A + iB) * (X + iY) = (AX - BY) + i(AY + BX)
 <paramètre : mat1> Le pointeur vers la première matrice à multiplier (non modifiable)
 <paramètre : mat2> Le pointeur vers la seconde matrice à multiplier (non modifiable)
 <paramètre : mat_res> Le pointeur vers la matrice résultat de la multiplication
 */
 void multiplier_cmplx(const Mat& mat1, const Mat& mat2, Mat& mat_res);
+
+/*
+SURCHARGE
+Multiplie une matrice complexe par un nombre complexe éléments par éléments : (A + iB) * (X + iY) = (AX - BY) + i(AY + BX)
+<paramètre : scalar_cmplx> Le nombre complexe à multiplier (non modifiable)
+<paramètre : mat_complexe> Le pointeur vers la matrice complexe à multiplier (non modifiable)
+<paramètre : mat_res> Le pointeur vers la matrice résultat de la multiplication
+*/
+void multiplier_cmplx(const complex<double>& scalar_cmplx, const Mat& mat_complexe, Mat& mat_res);
 
 /*
 Place l'image au milieu et ajoute des bordures autour
@@ -80,7 +113,7 @@ Permet de convertir une image complexe en une image affichable (module ou phase)
 <paramètre : method> La méthode utilisée pour afficher l'image : soit CALCUL_MODULE pour le calcule du module soit CALCUL_PHASE pour la phase
 <paramètre : echelle_log> <par défaut : false> Booléen qui permet ou non de passer l'image en échelle logarithmique : true = échelle log
 */
-void affiche_complex(const Mat& image_initiale, Mat& image_finale, int method, bool echelle_log = false);
+void affiche_complex(const Mat& image_initiale, Mat& image_finale, MethodeCalcul method, bool echelle_log = false);
 
 /*
 Permet d'échanger les 4 quadrants de l'image (les 4 quarts de l'image)
@@ -113,6 +146,18 @@ Permet de créer un kernel de propagation et de rétro-propagation en fonction des
 void fresnel_propagator(const Parametres& param, Mat& Hz, Mat& H_z);
 
 /*
+Permet de créer un kernel de propagation et de rétro-propagation en fonction des différents paramètres
+<paramètre : param> Les paramètres à utiliser pour créer le kernel (non modifiable)
+<paramètre : Hz> Le pointeur vers le kernel de propagation
+<paramètre : H_z> Le pointeur vers le kernel de rétro-propagation
+<paramètre : flag_phaseref> <par défaut : false>
+<paramètre : type_hologram> <par défaut : COMPLEXE>
+<paramètre : flag_linearize> <par défaut : false>
+<paramètre : type_obj> <par défaut : DEPHASING>
+*/
+void kernel_propagation_fresnel(const Parametres& param, Mat& Hz, Mat& H_z, bool flag_phaseref = false, TYPE_HOLOGRAM type_hologram = COMPLEXE, bool flag_linearize = false, TYPE_OBJ type_obj = DEPHASING);
+
+/*
 Permet de reconstruire une image à partir d'un hologramme
 <paramètre : hologramme> Le pointeur vers la matrice contenant l'hologramme que l'on souhaite reconstituer (non modifiable)
 <paramètre : img_reconstituee> Le pointeur vers la matrice contenant l'image reconstituée
@@ -134,10 +179,10 @@ Permet de reconstruire une image à partir d'un hologramme complexe
 void reconstitution_cmplx(const Mat& hologramme_real, const Mat& hologramme_imag, Mat& img_reconstituee, Parametres& param, int bordure_Re = 1, int bordure_Im = 0);
 
 /*
-Permet de reconstruire une image à partir d'un hologramme à l'aide de la méthode "état de l'art"
+Permet de reconstruire une image à partir d'un hologramme à l'aide de la méthode "fienup"
 <paramètre : hologramme> Le pointeur vers la matrice contenant l'hologramme que l'on souhaite reconstituer (non modifiable)
 <paramètre : img_reconstituee> Le pointeur vers la matrice contenant l'image reconstituée
 <paramètre : param> Les paramètres à utiliser pour reconstituer l'hologramme
 <paramètre : nb_repetition> <par défaut : 10> Correspond au nombre de répétition à faire dans l'algorithme
 */
-void reconstitution_etat_art(const Mat& hologramme, Mat& img_reconstituee, Parametres& param, int nb_repetition = 10);
+void reconstitution_fienup(const Mat& hologramme, Mat& img_reconstituee, Parametres& param, int nb_repetition = 10);

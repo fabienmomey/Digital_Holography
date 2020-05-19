@@ -1,17 +1,17 @@
-#include "function.h"
+#include "fonction.h"
 
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
-#include <time.h>
 
 using namespace std;
 using namespace cv;
 
 int main()
 {
-    time_t debut_prog = time(NULL);
-    
+    int e1 = getTickCount();
+    cout << "Hello World!\n";
+
     //Reconstitution hologramme -------------------------------------------------------------------------------------------------------------------------------------------------
 
     string tab_img[] =
@@ -30,46 +30,6 @@ int main()
     param1_hologramme.lambda = 532e-9;
     param1_hologramme.n0 = 1.52;
     param1_hologramme.pixel_size = 4.4e-6 / param1_hologramme.mag;
-
-            //Reconstitution simple
-    /*
-    Mat hologramme = imread(tab_img[0], IMREAD_UNCHANGED);
-
-    if (hologramme.empty())
-    {
-        cout << "Impossible d'ouvrir ou de lire l'image\n";
-        return -1;
-    }
-
-    Mat img_reconstituee;
-    reconstitution(hologramme, img_reconstituee, param1_hologramme);
-
-    affiche_image(hologramme, "Hologramme initial"); //Affichage de l'hologramme initial
-
-    affiche_complex(img_reconstituee, img_reconstituee, CALCUL_MODULE); //On fait le module de l'image reconstituée pour qu'elle puisse être affichée
-    affiche_image(img_reconstituee, "Image finale reconstituee"); //On affiche le résultat obetenu
-    */
-
-            //Reconstitution complexe
-    /*
-    Mat hologramme_real = imread(tab_img[4], IMREAD_UNCHANGED); //L'hologramme partie réelle
-    Mat hologramme_imag = imread(tab_img[5], IMREAD_UNCHANGED); //l'hologramme partie imaginaire
-    if (hologramme_real.empty() || hologramme_imag.empty())
-    {
-        cout << "Impossible d'ouvrir ou de lire l'image\n";
-        return -1;
-    }
-
-    Mat img_reconstituee;
-    reconstitution_cmplx(hologramme_real, hologramme_imag, img_reconstituee, param1_hologramme);
-
-    affiche_complex(hologramme, hologramme, CALCUL_MODULE);
-    affiche_image(hologramme, "Hologramme initial"); //Affichage de l'hologramme initial
-
-    affiche_complex(img_reconstituee, img_reconstituee, CALCUL_MODULE); //On fait le module de l'image reconstituée pour qu'elle puisse être affichée
-    affiche_image(img_reconstituee, "Image finale reconstituee"); //On affiche le résultat obetenu
-    */
-
 
     //Reconstitution avec la methode "Fienup Error-Reduction algorithm" ----------------------------------------------------------------------------------------------------------------------------
 
@@ -99,7 +59,7 @@ int main()
     }
 
     Mat img_reconstituee;
-    reconstitution_etat_art(hologramme, img_reconstituee, param2_hologramme, nb_repetition);
+    reconstitution_fienup(hologramme, img_reconstituee, param2_hologramme, nb_repetition);
 
     affiche_image(hologramme, "Image initiale");
 
@@ -108,8 +68,9 @@ int main()
 
     cout << "\nLe programme s'est execute en ";
 
-    time_t fin_prog = time(NULL);
-    int secondes = difftime(fin_prog, debut_prog);
+    int e2 = getTickCount();
+    int secondes = (e2 - e1) / getTickFrequency();
+   
     if (secondes >= 60)
     {
         int minutes = secondes / 60;

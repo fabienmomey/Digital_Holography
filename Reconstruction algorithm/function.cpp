@@ -1,4 +1,4 @@
-#include "function.h"
+#include "fonction.h"
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
@@ -80,13 +80,22 @@ void calcul_histogramme(const Mat& image_initiale, Mat& image_hist)
     }
 }
 
+void my_multiply(const Mat& mat_simple, const Mat& mat_complexe, Mat& mat_res)
+{
+    Mat mat_split[2];
+    split(mat_complexe, mat_split);
+    multiply(mat_simple, mat_split[0], mat_split[0]);
+    multiply(mat_simple, mat_split[1], mat_split[1]);
+    merge(mat_split, 2, mat_res);
+}
+
 void multiplier_cmplx(const Mat& mat1, const Mat& mat2, Mat& mat_res)
 {
     assert(mat1.size() == mat2.size()); //On vérifie que les 2 images ont bien la même taille
 
     Mat complexe1[2], complexe2[2], res[2];
     Mat temp1, temp2;
-    mat_res = Mat(mat1.size(), CV_64FC2);
+    //mat_res = Mat(mat1.size(), CV_64FC2);
 
     //On sépare chaque matrice facteur dans une double matrice (partie réelle et imaginaire)
     split(mat1, complexe1);
@@ -102,6 +111,31 @@ void multiplier_cmplx(const Mat& mat1, const Mat& mat2, Mat& mat_res)
     //Pour le calcul de la partie imaginaire : Im = (AY + BX)
     multiply(complexe1[1], complexe2[0], temp1);
     multiply(complexe1[0], complexe2[1], temp2);
+    res[1] = temp1 + temp2;
+
+    merge(res, 2, mat_res);
+}
+
+void multiplier_cmplx(const complex<double>& scalar_cmplx, const Mat& mat_complexe, Mat& mat_res)
+{
+    Mat complexe[2], res[2];
+    Mat temp1, temp2;
+
+    double real = scalar_cmplx.real(), imag = scalar_cmplx.imag();
+
+    //On sépare la matrice complexe dans une double matrice (partie réelle et imaginaire)
+    split(mat_complexe, complexe);
+
+    //(A + iB) * (X + iY) = (AX - BY) + i(AY + BX)
+
+    //Pour le calcul de la partie réelle : Re = (AX - BY)
+    multiply(real, complexe[0], temp1);
+    multiply(imag, complexe[1], temp2);
+    res[0] = temp1 - temp2;
+
+    //Pour le calcul de la partie imaginaire : Im = (AY + BX)
+    multiply(imag, complexe[0], temp1);
+    multiply(real, complexe[1], temp2);
     res[1] = temp1 + temp2;
 
     merge(res, 2, mat_res);
@@ -134,15 +168,19 @@ void optimal_TF(const Mat& image_initiale, const int bordure, Mat& image_finale)
     padding(image_initiale, nb_lignes, nb_col, bordure, image_finale);
 }
 
-void affiche_complex(const Mat& image_initiale, Mat& image_finale, int method, bool echelle_log)
+void affiche_complex(const Mat& image_initiale, Mat& image_finale, MethodeCalcul method, bool echelle_log)
 {
     Mat plans[2];
     split(image_initiale, plans); // On obtient ainsi plans[0] = partie réelle, plans[1] = partie imaginaire
 
     Mat res_img;
     if (method == CALCUL_MODULE) magnitude(plans[0], plans[1], res_img); //On calcul le module du nombre complexe
-    else if (method == CALCUL_PHASE) phase(plans[0], plans[1], res_img); //On calcul la phase du nombre complexe
-        
+    else if (method == CALCUL_PHASE)
+    {
+        phase(plans[0], plans[1], res_img); //On calcul la phase du nombre complexe
+        //res_img = res_img - CV_PI; //La fonction phase() calcul un angle en 0 et 2PI, il suffit de soustraire PI pour revenir dans l'intervale [-PI, PI]
+    }
+
     if (echelle_log) log(res_img + Scalar::all(1), image_finale); //On passe en échelle logarithmique : log(1 + module)
     else res_img.copyTo(image_finale);
 
@@ -209,18 +247,19 @@ void fresnel_propagator(const Parametres& param, Mat& Hz, Mat& H_z)
     complex<double> calc_inter;
     double k0 = 2 * param.n0 * CV_PI / param.lambda; //Constante k0
 
-    float z_shannon = MAX(param.width, param.height) * pow(param.pixel_size, 2) / param.lambda; //On définit le critère de Shannon pour utiliser la méthode la plus adaptée
+    Vec2d* Hz_temp, * H_z_temp;
+
+    Hz = Mat(param.width, param.height, CV_64FC2);
+    H_z = Mat(param.width, param.height, CV_64FC2);
+
+    double z_shannon = MAX(param.width, param.height) * pow(param.pixel_size, 2) / param.lambda; //On définit le critère de Shannon pour utiliser la méthode la plus adaptée
 
     if (param.z >= z_shannon)
     {
         //Réponse impulsionnelle analytique dans le domaine spatial + FFT
         cout << "Reponse impulsionnelle\n";
         double x, y;
-        Mat hz(param.width, param.height, CV_64FC2);
-        Mat temp(param.width, param.height, CV_64FC2);
-
-        //Calcul de Hz (propagation)
-
+        
         complex<double> n0_sur_i_pi_lambda_z = param.n0 / 1i / param.lambda / param.z;
 
         for (int i = 0; i < param.width; i++)
@@ -231,40 +270,27 @@ void fresnel_propagator(const Parametres& param, Mat& Hz, Mat& H_z)
                 y = (j - (floor(0.5 * ((double)param.height - 1)) + 1)) * param.pixel_size;
 
                 calc_inter = exp(param.n0 * 1i * CV_PI / param.lambda / param.z * (pow(x, 2) + pow(y, 2))) * exp(1i * k0 * param.z);
-                hz.at<Vec2d>(i, j)[0] = calc_inter.real();
-                hz.at<Vec2d>(i, j)[1] = calc_inter.imag();
+               
+                //Calcul de Hz (propagation)
+                Hz_temp = &Hz.at<Vec2d>(i, j);
+                (*Hz_temp)[0] = calc_inter.real() * n0_sur_i_pi_lambda_z.real() - calc_inter.imag() * n0_sur_i_pi_lambda_z.imag();
+                (*Hz_temp)[1] = calc_inter.real() * n0_sur_i_pi_lambda_z.imag() + calc_inter.imag() * n0_sur_i_pi_lambda_z.real();
 
-                temp.at<Vec2d>(i, j)[0] = hz.at<Vec2d>(i, j)[0] * n0_sur_i_pi_lambda_z.real() - hz.at<Vec2d>(i, j)[1] * n0_sur_i_pi_lambda_z.imag();
-                temp.at<Vec2d>(i, j)[1] = hz.at<Vec2d>(i, j)[0] * n0_sur_i_pi_lambda_z.imag() - hz.at<Vec2d>(i, j)[1] * n0_sur_i_pi_lambda_z.real();
+                //Calcul de H_z (rétro-propagation) : même méthode que pour Hz mais en remplaçant z par -z
+                H_z_temp = &H_z.at<Vec2d>(i, j);
+                (*H_z_temp)[0] = calc_inter.real() * (-n0_sur_i_pi_lambda_z.real()) - calc_inter.imag() * n0_sur_i_pi_lambda_z.imag();
+                (*H_z_temp)[1] = calc_inter.real() * (-n0_sur_i_pi_lambda_z.imag()) + calc_inter.imag() * n0_sur_i_pi_lambda_z.real();
             }
         }
+        double pixel_size_carre = pow(param.pixel_size, 2);
 
-        change_quadrants(temp, temp);
-        dft(temp, Hz, DFT_COMPLEX_OUTPUT);
-        Hz = pow(param.pixel_size, 2) * Hz; //////
+        change_quadrants(Hz, Hz);
+        dft(Hz, Hz, DFT_COMPLEX_OUTPUT);
+        multiply(pixel_size_carre, Hz, Hz);
 
-        //Calcul de H_z (rétro-propagation) : même méthode que pour Hz mais en remplaçant z par -z
-
-        n0_sur_i_pi_lambda_z = -param.n0 / 1i / param.lambda / param.z;
-
-        for (int i = 0; i < param.width; i++)
-        {
-            x = (i - (floor(0.5 * ((double)param.width - 1)) + 1)) * param.pixel_size;
-            for (int j = 0; j < param.height; j++)
-            {
-                y = (j - (floor(0.5 * ((double)param.height - 1)) + 1)) * param.pixel_size;
-
-                calc_inter = exp(-param.n0 * 1i * CV_PI / param.lambda / param.z * (pow(x, 2) + pow(y, 2))) * exp(-1i * k0 * param.z);
-                hz.at<Vec2d>(i, j)[0] = calc_inter.real();
-                hz.at<Vec2d>(i, j)[1] = calc_inter.imag();
-
-                temp.at<Vec2d>(i, j)[0] = hz.at<Vec2d>(i, j)[0] * n0_sur_i_pi_lambda_z.real() - hz.at<Vec2d>(i, j)[1] * n0_sur_i_pi_lambda_z.imag();
-                temp.at<Vec2d>(i, j)[1] = hz.at<Vec2d>(i, j)[0] * n0_sur_i_pi_lambda_z.imag() - hz.at<Vec2d>(i, j)[1] * n0_sur_i_pi_lambda_z.real();
-            }
-        }
-        change_quadrants(temp, temp);
-        dft(temp, H_z, DFT_COMPLEX_OUTPUT);
-        H_z = pow(param.pixel_size, 2) * H_z;
+        change_quadrants(H_z, H_z);
+        dft(H_z, H_z, DFT_COMPLEX_OUTPUT);
+        multiply(pixel_size_carre, H_z, H_z);
     }
     else
     {
@@ -272,9 +298,6 @@ void fresnel_propagator(const Parametres& param, Mat& Hz, Mat& H_z)
         cout << "Fonction de transfert\n";
         double u, v;
         complex<double> i_pi_lambda_z = -1i * CV_PI * param.lambda * param.z / param.n0;
-
-        Hz = Mat(param.width, param.height, CV_64FC2);
-        H_z = Mat(param.width, param.height, CV_64FC2);
 
         for (int i = 0; i < param.width; i++)
         {
@@ -286,18 +309,153 @@ void fresnel_propagator(const Parametres& param, Mat& Hz, Mat& H_z)
                 //Calcul de Hz (propagation)
 
                 calc_inter = exp(i_pi_lambda_z * (pow(u, 2) + pow(v, 2))) * exp(1i * k0 * param.z);
-                Hz.at<Vec2d>(i, j)[0] = calc_inter.real();
-                Hz.at<Vec2d>(i, j)[1] = calc_inter.imag();
 
+                Hz_temp = &Hz.at<Vec2d>(i, j);
+                (*Hz_temp)[0] = calc_inter.real();
+                (*Hz_temp)[1] = calc_inter.imag();
+
+                
                 //Calcul de H_z (rétro-propagation) : même méthode que pour Hz mais en remplaçant z par -z
 
-                calc_inter = exp(-i_pi_lambda_z * (pow(u, 2) + pow(v, 2))) * exp(-1i * k0 * param.z);
-                H_z.at<Vec2d>(i, j)[0] = calc_inter.real();
-                H_z.at<Vec2d>(i, j)[1] = calc_inter.imag();
+                H_z_temp = &H_z.at<Vec2d>(i, j);
+                (*H_z_temp)[0] = calc_inter.real();
+                (*H_z_temp)[1] = -calc_inter.imag();
             }
         }
         change_quadrants(Hz, Hz);
         change_quadrants(H_z, H_z);
+    }
+}
+
+void kernel_propagation_fresnel(const Parametres& param, Mat& Hz, Mat& H_z, bool flag_phaseref, TYPE_HOLOGRAM type_hologram, bool flag_linearize, TYPE_OBJ type_obj)
+{
+    KERNEL_TYPE type_kernel = HZ;
+
+    if (type_hologram == INTENSITE && flag_linearize)
+    {
+        flag_phaseref = false;
+        type_kernel = GZ_DEPHASING;
+
+        if (type_obj == ABSORBING) type_kernel = GZ_ABSORBING;
+    }
+
+    complex<double> calc_inter;
+    double k0 = 2 * param.n0 * CV_PI / param.lambda; //Constante k0
+    Vec2d* temp;
+    Hz = Mat(param.width, param.height, CV_64FC2);
+    Mat mat_split[2];
+
+    double z_shannon = MAX(param.width, param.height) * pow(param.pixel_size, 2) / param.lambda; //On définit le critère de Shannon pour utiliser la méthode la plus adaptée
+
+    if (param.z >= z_shannon)
+    {
+        //Réponse impulsionnelle analytique dans le domaine spatial + FFT
+        cout << "Reponse impulsionnelle\n";
+
+        double x, y;
+        complex<double> n0_sur_i_lambda_z = param.n0 / 1i / param.lambda / param.z;
+
+        //Mat hz(param.width, param.height, CV_64FC2);
+
+        for (int i = 0; i < param.width; i++)
+        {
+            x = (i - (floor(0.5 * ((double)param.width - 1)) + 1)) * param.pixel_size;
+            for (int j = 0; j < param.height; j++)
+            {
+                y = (j - (floor(0.5 * ((double)param.height - 1)) + 1)) * param.pixel_size;
+
+                calc_inter = exp(param.n0 * 1i * CV_PI / param.lambda / param.z * (pow(x, 2) + pow(y, 2)));
+
+                temp = &Hz.at<Vec2d>(i, j);
+                (*temp)[0] = calc_inter.real();
+                (*temp)[1] = calc_inter.imag();
+            }
+        }
+        multiplier_cmplx(n0_sur_i_lambda_z, Hz, Hz);
+
+        if (flag_phaseref)
+        {
+            calc_inter = exp(1i * k0 * param.z);
+            multiplier_cmplx(calc_inter, Hz, Hz);
+        }
+
+        if (type_kernel != HZ)
+        {
+            split(Hz, mat_split);
+            if (type_kernel == GZ_DEPHASING)
+            {
+                mat_split[0] = 0;
+                mat_split[1] = -2 * mat_split[1];
+            }
+            if (type_kernel == GZ_ABSORBING)
+            {
+                mat_split[0] = 2 * mat_split[0];
+                mat_split[1] = 0;
+            }
+            merge(mat_split, 2, Hz);
+        }
+
+        change_quadrants(Hz, Hz);
+        dft(Hz, Hz, DFT_COMPLEX_OUTPUT);
+        multiply(pow(param.pixel_size, 2), Hz, Hz);
+
+        split(Hz, mat_split);
+        mat_split[1] = -mat_split[1];
+        merge(mat_split, 2, H_z);
+    }
+    else
+    {
+        //Fonction de transfert analytique dans le domaine de Fourier
+        cout << "Fonction de transfert\n";
+
+        double u, v;
+        complex<double> i_pi_lambda_z = -1i * CV_PI * param.lambda * param.z / param.n0;
+
+        for (int i = 0; i < param.width; i++)
+        {
+            u = (i - (floor(0.5 * ((double)param.width - 1)) + 1)) / param.width / param.pixel_size;
+            for (int j = 0; j < param.height; j++)
+            {
+                v = (j - (floor(0.5 * ((double)param.height - 1)) + 1)) / param.height / param.pixel_size;
+
+                calc_inter = exp(i_pi_lambda_z * (pow(u, 2) + pow(v, 2)));
+
+                temp = &Hz.at<Vec2d>(i, j);
+                (*temp)[0] = calc_inter.real();
+                (*temp)[1] = calc_inter.imag();
+            }
+        }
+        change_quadrants(Hz, Hz);
+
+        if (flag_phaseref)
+        {
+            calc_inter = exp(1i * k0 * param.z);
+            multiplier_cmplx(calc_inter, Hz, Hz);
+        }
+
+        if (type_kernel != HZ)
+        {
+            split(Hz, mat_split);
+            if (type_kernel == GZ_DEPHASING)
+            {
+                mat_split[0] = 0;
+                mat_split[1] = -2 * mat_split[1];
+            }
+            if (type_kernel == GZ_ABSORBING)
+            {
+                mat_split[0] = 2 * mat_split[0];
+                mat_split[1] = 0;
+            }
+            merge(mat_split, 2, Hz);
+        }
+
+        change_quadrants(Hz, Hz);
+        dft(Hz, Hz, DFT_COMPLEX_OUTPUT);
+        multiply(pow(param.pixel_size, 2), Hz, Hz);
+
+        split(Hz, mat_split);
+        mat_split[1] = -mat_split[1];
+        merge(mat_split, 2, H_z);
     }
 }
 
@@ -387,8 +545,10 @@ void reconstitution_cmplx(const Mat& hologramme_real, const Mat& hologramme_imag
     Mat(TF_inverse, Rect(marge_rows, marge_cols, taille_initiale[0], taille_initiale[1])).copyTo(img_reconstituee);
 }
 
-void reconstitution_etat_art(const Mat& hologramme, Mat& img_reconstituee, Parametres& param, int nb_repetition)
+void reconstitution_fienup(const Mat& hologramme, Mat& img_reconstituee, Parametres& param, int nb_repetition)
 {
+    double e1, e2, secondes;
+
     Mat temp;
     hologramme.convertTo(temp, CV_64F);
     sqrt(temp, temp); //On fait la racine carré de l'hologramme, car les données récupérées sont le carré du module
@@ -409,43 +569,52 @@ void reconstitution_etat_art(const Mat& hologramme, Mat& img_reconstituee, Param
     param.width = taille_finale[0];
     param.height = taille_finale[1];
 
-    Mat sqrt_holo_complexe[] = { hologramme_optimal, Mat(hologramme_optimal.size(), CV_64F, Scalar(0)) }; //La racine de l'hologramme initial sous forme complexe : M = M + i*0
-    Mat sqrt_holo_cmplx; //La racine de l'hologramme initial sous forme complexe de type CV_64FC2
-    merge(sqrt_holo_complexe, 2, sqrt_holo_cmplx);
-
     Mat Hz, H_z;
-    fresnel_propagator(param, Hz, H_z); //On récupère les 2 kernel en fonction des paramètres ci-dessus
+    e1 = getTickCount();
+    //fresnel_propagator(param, Hz, H_z); //On récupère les 2 kernel en fonction des paramètres ci-dessus
+    kernel_propagation_fresnel(param, Hz, H_z);
+
+    e2 = getTickCount();
+    secondes = (e2 - e1) / getTickFrequency();
+    cout << "Fresnel : " << secondes << " secondes\n";
 
     Mat hologramme_iteration; //La matrice qui sera récupérée et modifiée à chaque itération
     hologramme_optimal.copyTo(hologramme_iteration);
 
     Mat TF, produit_TF, TF_inverse; //Matrice pour Fourier
-    Mat mat_split[2], angle, module1;
-
+    Mat mat_split[2], module1;
 
     for (int i = 0; i < nb_repetition; i++)
     {
+        e1 = getTickCount();
         //Retro - propagation
         dft(hologramme_iteration, TF, DFT_COMPLEX_OUTPUT);
         multiplier_cmplx(TF, H_z, produit_TF);
         idft(produit_TF, TF_inverse, DFT_COMPLEX_OUTPUT);
 
-        //On recrée une image en passant le module à 1 : module1 = exp( 1i * max( phase(TF_inverse), 0) )
+        //On recrée une image en passant le module à 1 : module1 = TF_inverse / abs(TF_inverse) avec partie réelle et partie imaginaire positives
         split(TF_inverse, mat_split);
-        phase(mat_split[0], mat_split[1], angle); //Calcul de la phase
-        max(angle, 0, temp);
-        exp_complex(temp, module1); //On met le module à 1 : exp(i*angle)
+        max(0, mat_split[0], mat_split[0]); //On force la partie réelle positive
+        max(0, mat_split[1], mat_split[1]); //On force la partie imaginaire positive
+        magnitude(mat_split[0], mat_split[1], temp); //Calcul du module
+        divide(1, temp, temp);
+        merge(mat_split, 2, TF_inverse);
+        my_multiply(temp, TF_inverse, module1);
 
         //Propagation
         dft(module1, TF, DFT_COMPLEX_OUTPUT);
         multiplier_cmplx(TF, Hz, produit_TF);
         idft(produit_TF, TF_inverse, DFT_COMPLEX_OUTPUT);
 
-        //On remet les données initiales de l'hologramme : hologramme_iteration = sqrt_holo .* exp( 1i * phase(TF_inverse) )
+        //On remet les données initiales de l'hologramme : hologramme_iteration = hologramme_optimal * TF_inverse / abs(TF_inverse)
         split(TF_inverse, mat_split);
-        phase(mat_split[0], mat_split[1], angle); //Calcul de la phase
-        exp_complex(angle, temp); // temp = exp(i*angle)
-        multiplier_cmplx(sqrt_holo_cmplx, temp, hologramme_iteration); //hologramme_iteration = sqrt_holo_cmplx * temp
+        magnitude(mat_split[0], mat_split[1], temp); //Calcul du module
+        divide(hologramme_optimal, temp, temp);
+        my_multiply(temp, TF_inverse, hologramme_iteration);
+
+        e2 = getTickCount();
+        secondes = (e2 - e1) / getTickFrequency();
+        cout << "itération " << i << " : " << secondes << " secondes\n";
     }
 
     //On reduit l'image reconstituée pour ne garder que la partie centrale qui correspond au résultat
