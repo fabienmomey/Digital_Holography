@@ -1,15 +1,15 @@
-#include "fonction.h"
-
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/core.hpp>
+#include "function.h"
 
 using namespace std;
 using namespace cv;
 
 int main()
 {
-    int e1 = getTickCount();
+    unsigned long long int e1 = getTickCount();
     cout << "Hello World!\n";
 
     //Reconstitution hologramme -------------------------------------------------------------------------------------------------------------------------------------------------
@@ -68,9 +68,9 @@ int main()
 
     cout << "\nLe programme s'est execute en ";
 
-    int e2 = getTickCount();
-    int secondes = (e2 - e1) / getTickFrequency();
-   
+    unsigned long long int e2 = getTickCount();
+    unsigned long long int secondes = (e2 - e1) / getTickFrequency();
+
     if (secondes >= 60)
     {
         int minutes = secondes / 60;
