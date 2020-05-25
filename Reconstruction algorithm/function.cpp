@@ -1,65 +1,66 @@
+
+#include "fonction.h"
+
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
-#include <opencv2/core.hpp>
-#include "function.h"
 
 using namespace std;
 using namespace cv;
 
-void calcul_histogramme(const Mat& image_initiale, Mat& image_hist)
+void histogram_calcul(const Mat& initial_image, Mat& image_hist)
 {
-    int nb_source = 1;
+    int source_number = 1;
     int dims = 1;
-    int taille_hist = 256; //les 256 valeurs que peut prendre un pixel
-    float plage_data[] = { 0, 255 }; //Chaque pixel peut prendre une valeur entre 0 et 256
-    const float* plage_hist = { plage_data };
-    bool uniforme = true; //La plage de valeur est uniforme, va de 1 en 1
+    int hist_size = 256; //The 256 values that a pixel can take
+    float data_range[] = { 0, 255 }; //Each pixel can take a value between 0 and 256
+    const float* hist_range = { data_range };
+    bool uniform = true; //The value range is uniform, from 1 to 1
 
-    int graduation = 5; //Taille d'une graduation
-    int largeur_hist = graduation * taille_hist;
-    int hauteur_hist = 1000;
-    image_hist = Mat(hauteur_hist, largeur_hist, CV_8UC3, Scalar(0, 0, 0));
+    int scale = 5; //Scale size
+    int hist_width = scale * hist_size;
+    int hist_height = 1000;
+    image_hist = Mat(hist_height, hist_width, CV_8UC3, Scalar(0, 0, 0));
 
-    if (image_initiale.channels() == 1) //Si on a une image en niveau de gris
+    if (initial_image.channels() == 1) //If we get a grayscale image
     {
-        Mat hist_ndg;
+        Mat grey_hist;
 
-        calcHist(&image_initiale, nb_source, 0, Mat(), hist_ndg, dims, &taille_hist, &plage_hist, uniforme, false);
+        calcHist(&initial_image, source_number, 0, Mat(), grey_hist, dims, &hist_size, &hist_range, uniform, false);
 
         float maxi = 0;
-        for (int i = 0; i < taille_hist; i++) //On cherche la plus grande valeur dans tout les histogrammes pour adapter la hauteur de l'image finale
+        for (int i = 0; i < hist_size; i++) //We look for the highest value in all the histograms to adapt the height of the final image
         {
-            if (hist_ndg.at<float>(i) > maxi) maxi = hist_ndg.at<float>(i);
+            if (grey_hist.at<float>(i) > maxi) maxi = grey_hist.at<float>(i);
         }
-        assert(maxi != 0); //On vérifie que le max ne soit pas 0, si c'est le cas, le programme se stoppe ici
+        assert(maxi != 0); //We check that the max is not 0, if it is the case, the program stops here
 
-        for (int i = 1; i < taille_hist; i++) //On trace chaque ligne entre le point précédent et le point actuel pour obtenir l'histogramme
+        for (int i = 1; i < hist_size; i++) //Each line is drawn between the previous point and the current point to obtain the histogram
         {
-            line(image_hist, Point(graduation * (i - 1), hauteur_hist * (1 - hist_ndg.at<float>(i - 1) / maxi)), Point(graduation * (i), hauteur_hist * (1 - hist_ndg.at<float>(i) / maxi)), Scalar(255, 255, 255), 2, 8, 0);
+            line(image_hist, Point(scale * (i - 1), hist_height * (1 - grey_hist.at<float>(i - 1) / maxi)), Point(scale * (i), hist_height * (1 - grey_hist.at<float>(i) / maxi)), Scalar(255, 255, 255), 2, 8, 0);
         }
     }
 
-    else if (image_initiale.channels() == 3) //Si on a une image en couleur
+    else if (initial_image.channels() == 3) //If we get a color image
     {
-        //On crée une matrice pour chaque canal de couleur
-        Mat r(image_initiale.rows, image_initiale.cols, CV_8UC1);
-        Mat g(image_initiale.rows, image_initiale.cols, CV_8UC1);
-        Mat b(image_initiale.rows, image_initiale.cols, CV_8UC1);
+        //We create a matrix for each color channel
+        Mat r(initial_image.rows, initial_image.cols, CV_8UC1);
+        Mat g(initial_image.rows, initial_image.cols, CV_8UC1);
+        Mat b(initial_image.rows, initial_image.cols, CV_8UC1);
 
         Mat bgr[] = { b, g, r };
 
-        split(image_initiale, bgr); //On sépare l'image dans ses différents cannaux
+        split(initial_image, bgr); //We separate the image into its different channels
 
-        //On réalise la même méthode que pour l'image en niveau de gris pour chaque canaux
+        //The same method as for the grayscale image is used for each channel
         Mat hist_blue, hist_green, hist_red;
 
-        calcHist(&b, nb_source, 0, Mat(), hist_blue, dims, &taille_hist, &plage_hist, uniforme, false);
-        calcHist(&g, nb_source, 0, Mat(), hist_green, dims, &taille_hist, &plage_hist, uniforme, false);
-        calcHist(&r, nb_source, 0, Mat(), hist_red, dims, &taille_hist, &plage_hist, uniforme, false);
+        calcHist(&b, source_number, 0, Mat(), hist_blue, dims, &hist_size, &hist_range, uniform, false);
+        calcHist(&g, source_number, 0, Mat(), hist_green, dims, &hist_size, &hist_range, uniform, false);
+        calcHist(&r, source_number, 0, Mat(), hist_red, dims, &hist_size, &hist_range, uniform, false);
 
         float maxi = 0;
-        for (int i = 0; i < taille_hist; i++) //On cherche la plus grande valeur dans tout les histogrammes
+        for (int i = 0; i < hist_size; i++) //We're looking for the highest value in all the histograms
         {
             if (hist_blue.at<float>(i) > maxi) maxi = hist_blue.at<float>(i);
             if (hist_green.at<float>(i) > maxi) maxi = hist_green.at<float>(i);
@@ -67,328 +68,324 @@ void calcul_histogramme(const Mat& image_initiale, Mat& image_hist)
         }
         assert(maxi != 0);
 
-        for (int i = 1; i < taille_hist; i++)
+        for (int i = 1; i < hist_size; i++)
         {
-            line(image_hist, Point(graduation * (i - 1), hauteur_hist * (1 - hist_blue.at<float>(i - 1) / maxi)), Point(graduation * (i), hauteur_hist * (1 - hist_blue.at<float>(i) / maxi)), Scalar(255, 0, 0), 2, 8, 0);
-            line(image_hist, Point(graduation * (i - 1), hauteur_hist * (1 - hist_green.at<float>(i - 1) / maxi)), Point(graduation * (i), hauteur_hist * (1 - hist_green.at<float>(i) / maxi)), Scalar(0, 255, 0), 2, 8, 0);
-            line(image_hist, Point(graduation * (i - 1), hauteur_hist * (1 - hist_red.at<float>(i - 1) / maxi)), Point(graduation * (i), hauteur_hist * (1 - hist_red.at<float>(i) / maxi)), Scalar(0, 0, 255), 2, 8, 0);
+            line(image_hist, Point(scale * (i - 1), hist_height * (1 - hist_blue.at<float>(i - 1) / maxi)), Point(scale * (i), hist_height * (1 - hist_blue.at<float>(i) / maxi)), Scalar(255, 0, 0), 2, 8, 0);
+            line(image_hist, Point(scale * (i - 1), hist_height * (1 - hist_green.at<float>(i - 1) / maxi)), Point(scale * (i), hist_height * (1 - hist_green.at<float>(i) / maxi)), Scalar(0, 255, 0), 2, 8, 0);
+            line(image_hist, Point(scale * (i - 1), hist_height * (1 - hist_red.at<float>(i - 1) / maxi)), Point(scale * (i), hist_height * (1 - hist_red.at<float>(i) / maxi)), Scalar(0, 0, 255), 2, 8, 0);
         }
     }
 
     else
     {
-        cout << "Erreur : l'histogramme ne paut pas être tracé\n";
+        cout << "Error: The histogram cannot be plotted.\n";
     }
 }
 
-void my_multiply(const Mat& mat_simple, const Mat& mat_complexe, Mat& mat_res)
+void my_multiply(const Mat& simple_mat, const Mat& complex_mat, Mat& res_mat)
 {
     Mat mat_split[2];
-    split(mat_complexe, mat_split);
-    multiply(mat_simple, mat_split[0], mat_split[0]);
-    multiply(mat_simple, mat_split[1], mat_split[1]);
-    merge(mat_split, 2, mat_res);
+    split(complex_mat, mat_split); //We separate the real from the imaginary 
+    //M * (A+iB) = MA + iMB
+    multiply(simple_mat, mat_split[0], mat_split[0]);
+    multiply(simple_mat, mat_split[1], mat_split[1]);
+    merge(mat_split, 2, res_mat);
 }
 
-void multiplier_cmplx(const Mat& mat1, const Mat& mat2, Mat& mat_res)
+void complex_multiply(const Mat& mat1, const Mat& mat2, Mat& res_mat)
 {
-    assert(mat1.size() == mat2.size()); //On vérifie que les 2 images ont bien la même taille
+    assert(mat1.size() == mat2.size()); //We check that both images are the same size
 
-    Mat complexe1[2], complexe2[2], res[2];
+    Mat complex1[2], complex2[2], res[2];
     Mat temp1, temp2;
-    //mat_res = Mat(mat1.size(), CV_64FC2);
 
-    //On sépare chaque matrice facteur dans une double matrice (partie réelle et imaginaire)
-    split(mat1, complexe1);
-    split(mat2, complexe2);
+    //We separate each factor matrix into a double matrix (real and imaginary part)
+    split(mat1, complex1);
+    split(mat2, complex2);
 
     //(A + iB) * (X + iY) = (AX - BY) + i(AY + BX)
 
-    //Pour le calcul de la partie réelle : Re = (AX - BY)
-    multiply(complexe1[0], complexe2[0], temp1);
-    multiply(complexe1[1], complexe2[1], temp2);
+    //For the calcul of the real part: Re = (AX - BY)
+    multiply(complex1[0], complex2[0], temp1);
+    multiply(complex1[1], complex2[1], temp2);
     res[0] = temp1 - temp2;
 
-    //Pour le calcul de la partie imaginaire : Im = (AY + BX)
-    multiply(complexe1[1], complexe2[0], temp1);
-    multiply(complexe1[0], complexe2[1], temp2);
+    //For the calcul of the imaginary part : Im = (AY + BX)
+    multiply(complex1[1], complex2[0], temp1);
+    multiply(complex1[0], complex2[1], temp2);
     res[1] = temp1 + temp2;
 
-    merge(res, 2, mat_res);
+    merge(res, 2, res_mat);
 }
 
-void multiplier_cmplx(const complex<double>& scalar_cmplx, const Mat& mat_complexe, Mat& mat_res)
+void complex_multiply(const complex<double>& complex_scalar, const Mat& complex_mat, Mat& res_mat)
 {
-    Mat complexe[2], res[2];
+    Mat complex[2], res[2];
     Mat temp1, temp2;
 
-    double real = scalar_cmplx.real(), imag = scalar_cmplx.imag();
+    double real = complex_scalar.real(), imag = complex_scalar.imag();
 
-    //On sépare la matrice complexe dans une double matrice (partie réelle et imaginaire)
-    split(mat_complexe, complexe);
+    //We separate the complex matrix into a double matrix (real and imaginary part)
+    split(complex_mat, complex);
 
     //(A + iB) * (X + iY) = (AX - BY) + i(AY + BX)
 
-    //Pour le calcul de la partie réelle : Re = (AX - BY)
-    multiply(real, complexe[0], temp1);
-    multiply(imag, complexe[1], temp2);
+    //For the calcul of the real part: Re = (AX - BY)
+    multiply(real, complex[0], temp1);
+    multiply(imag, complex[1], temp2);
     res[0] = temp1 - temp2;
 
-    //Pour le calcul de la partie imaginaire : Im = (AY + BX)
-    multiply(imag, complexe[0], temp1);
-    multiply(real, complexe[1], temp2);
+    //For the calcul of the imaginary part : Im = (AY + BX)
+    multiply(imag, complex[0], temp1);
+    multiply(real, complex[1], temp2);
     res[1] = temp1 + temp2;
 
-    merge(res, 2, mat_res);
+    merge(res, 2, res_mat);
 }
 
-void padding(const Mat& image_initiale, const int x, const int y, const int bordure, Mat& image_resize)
+void padding(const Mat& initial_mat, const int x, const int y, const int pad, Mat& resized_mat)
 {
-    int marge_top, marge_bottom, marge_left, marge_right;
+    int top_margin, bottom_margin, left_margin, right_margin;
 
-    marge_top = floor(1.0 * (x - image_initiale.rows) / 2);
-    marge_left = floor(1.0 * (y - image_initiale.cols) / 2);
+    //We wish to have the same margin all around(to the nearest 1)
 
-    if ((x - image_initiale.rows) % 2 == 1) marge_bottom = marge_top + 1;
-    else marge_bottom = marge_top;
+    top_margin = floor(1.0 * (x - initial_mat.rows) / 2);
+    left_margin = floor(1.0 * (y - initial_mat.cols) / 2);
 
-    if ((y - image_initiale.cols) % 2 == 1) marge_right = marge_left + 1;
-    else marge_right = marge_left;
+    if ((x - initial_mat.rows) % 2 == 1) bottom_margin = top_margin + 1;
+    else bottom_margin = top_margin;
 
-    //On place l'image initiale au milieu de l'image finale avec les bonnes dimensions et rempli l'espace "vide" avec des pixels de la valeur choisie
-    copyMakeBorder(image_initiale, image_resize, marge_top, marge_bottom, marge_left, marge_right, BORDER_CONSTANT, Scalar::all(bordure));
+    if ((y - initial_mat.cols) % 2 == 1) right_margin = left_margin + 1;
+    else right_margin = left_margin;
+
+    //We place the initial image in the middle of the final image with the right dimensions and fill the "empty" space with pixels of the chosen value
+    copyMakeBorder(initial_mat, resized_mat, top_margin, bottom_margin, left_margin, right_margin, BORDER_CONSTANT, Scalar::all(pad));
 }
 
-void optimal_TF(const Mat& image_initiale, const int bordure, Mat& image_finale)
+void optimal_FT(const Mat& initial_mat, const int pad, Mat& final_mat)
 {
-    //On récupère la taille optimale pour la TF
-    int nb_lignes = getOptimalDFTSize(image_initiale.rows);
-    int nb_col = getOptimalDFTSize(image_initiale.cols);
+    //We get the optimal size for the Fourier transform
+    int row_number = getOptimalDFTSize(initial_mat.rows);
+    int col_number = getOptimalDFTSize(initial_mat.cols);
 
-    //On utilise la fonction padding pour redimensionner l'image
-    padding(image_initiale, nb_lignes, nb_col, bordure, image_finale);
+    //The padding function is used to resize the image
+    padding(initial_mat, row_number, col_number, pad, final_mat);
 }
 
-void affiche_complex(const Mat& image_initiale, Mat& image_finale, MethodeCalcul method, bool echelle_log)
+void complex_display(const Mat& initial_mat, Mat& final_mat, CalculMethod method, bool log_scale)
 {
-    Mat plans[2];
-    split(image_initiale, plans); // On obtient ainsi plans[0] = partie réelle, plans[1] = partie imaginaire
+    Mat plane[2];
+    split(initial_mat, plane); //We thus obtain planes [0] = real part, planes [1] = imaginary part
 
-    Mat res_img;
-    if (method == CALCUL_MODULE) magnitude(plans[0], plans[1], res_img); //On calcul le module du nombre complexe
-    else if (method == CALCUL_PHASE)
-    {
-        phase(plans[0], plans[1], res_img); //On calcul la phase du nombre complexe
-        //res_img = res_img - CV_PI; //La fonction phase() calcul un angle en 0 et 2PI, il suffit de soustraire PI pour revenir dans l'intervale [-PI, PI]
-    }
+    Mat res_image;
+    if (method == MODULE_CALCUL) magnitude(plane[0], plane[1], res_image); //We calculate the module of the complex number
+    else if (method == PHASE_CALCUL) phase(plane[0], plane[1], res_image); //We calculate the phase of the complex number
 
-    if (echelle_log) log(res_img + Scalar::all(1), image_finale); //On passe en échelle logarithmique : log(1 + module)
-    else res_img.copyTo(image_finale);
+    if (log_scale) log(res_image + Scalar::all(1), final_mat); //We switch to logarithmic scale: log(1 + module)
+    else res_image.copyTo(final_mat);
 
-    //On obtient ainsi les valeurs hautes en blanc et les valeurs basses en noir
+    //This results in high values in white and low values in black
 
-    normalize(image_finale, image_finale, 0, 1, NORM_MINMAX);
+    normalize(final_mat, final_mat, 0, 1, NORM_MINMAX);
 }
 
-void change_quadrants(const Mat& image_initiale, Mat& image_finale)
+void swap_quadrants(const Mat& initial_mat, Mat& final_mat)
 {
-    // On replace l'origine du repère au centre de l'image
-    int origine_x = image_initiale.cols / 2;
-    int origine_y = image_initiale.rows / 2;
+    //The origin of the marker is placed in the center of the image
+    int origin_x = initial_mat.cols / 2;
+    int origin_y = initial_mat.rows / 2;
 
-    image_initiale.copyTo(image_finale);
+    initial_mat.copyTo(final_mat);
 
-    // On crée les 4 quadrants de l'image pour les utiliser plus facilement
-    Mat q0(image_finale, Rect(0, 0, origine_x, origine_y));   //En haut à gauche
-    Mat q1(image_finale, Rect(origine_x, 0, origine_x, origine_y));  //En haut à droite
-    Mat q2(image_finale, Rect(0, origine_y, origine_x, origine_y));  //En bas à gauche
-    Mat q3(image_finale, Rect(origine_x, origine_y, origine_x, origine_y)); //En bas à droite
+    //We create the 4 quadrants of the image to use them more easily
+    Mat q0(final_mat, Rect(0, 0, origin_x, origin_y));   //Top left
+    Mat q1(final_mat, Rect(origin_x, 0, origin_x, origin_y));  //Top right
+    Mat q2(final_mat, Rect(0, origin_y, origin_x, origin_y));  //Bottom left
+    Mat q3(final_mat, Rect(origin_x, origin_y, origin_x, origin_y)); //Bottom right
 
-    //Comme on a changé de place l'origine, il faut replacer les quadrants par rapport à la nouvelle origine
-    //Il faut faire une "symétrie" par rapport à la nouvelle origine
+    //Since the origin has been moved, the quadrants must be repositioned in relation to the new origin
+    //We have to make a "symmetry" in relation to the new origin
     Mat temp;
-    //On échange le quadrant en haut à gauche avec celui en bas à droite
+    //Swap the top left quadrant with the bottom right quadrant
     q0.copyTo(temp);
     q3.copyTo(q0);
     temp.copyTo(q3);
-    //On échange le quadrant en haut à droite avec celui en bas à gauche
+    //Swap the top right quadrant with the bottom left quadrant
     q1.copyTo(temp);
     q2.copyTo(q1);
     temp.copyTo(q2);
 }
 
-void affiche_image(const Mat& image, string nom, bool norm)
+void image_display(const Mat& image, string name, bool norm)
 {
-    namedWindow(nom, WINDOW_AUTOSIZE); // On crée la fenetre
+    namedWindow(name, WINDOW_AUTOSIZE); //We create the window
     if (norm)
     {
         Mat temp;
-        normalize(image, temp, 0, 255, NORM_MINMAX); //NORM_MINMAX
-        imshow(nom, temp); // On affiche l'image dans cette fenetre
+        normalize(image, temp, 0, 255, NORM_MINMAX);
+        imshow(name, temp); //We display the image in this window
     }
-    else imshow(nom, image); // On affiche l'image dans cette fenetre
+    else imshow(name, image); //We display the image in this window
 }
 
-void exp_complex(const Mat& mat_initiale, Mat& mat_finale)
+void complex_exp(const Mat& initial_mat, Mat& final_mat)
 {
-    mat_finale = Mat(mat_initiale.size(), CV_64FC2);
+    final_mat = Mat(initial_mat.size(), CV_64FC2);
 
-    for (int i = 0; i < mat_initiale.rows; i++)
+    //exp(i*M) = cos(M) + i*sin(M)
+    for (int i = 0; i < initial_mat.rows; i++)
     {
-        for (int j = 0; j < mat_initiale.cols; j++)
+        for (int j = 0; j < initial_mat.cols; j++)
         {
-            mat_finale.at<Vec2d>(i, j)[0] = cos(mat_initiale.at<double>(i, j));
-            mat_finale.at<Vec2d>(i, j)[1] = sin(mat_initiale.at<double>(i, j));
+            final_mat.at<Vec2d>(i, j)[0] = cos(initial_mat.at<double>(i, j));
+            final_mat.at<Vec2d>(i, j)[1] = sin(initial_mat.at<double>(i, j));
         }
     }
 }
 
-void fresnel_propagator(const Parametres& param, Mat& Hz, Mat& H_z)
+void fresnel_propagator(const Settings& setting, Mat& Hz, Mat& H_z)
 {
-    complex<double> calc_inter;
-    double k0 = 2 * param.n0 * CV_PI / param.lambda; //Constante k0
+    complex<double> temp_calcul;
+    double k0 = 2 * setting.n0 * CV_PI / setting.lambda; //Constant k0
 
     Vec2d* Hz_temp, * H_z_temp;
 
-    Hz = Mat(param.width, param.height, CV_64FC2);
-    H_z = Mat(param.width, param.height, CV_64FC2);
+    Hz = Mat(setting.width, setting.height, CV_64FC2);
+    H_z = Mat(setting.width, setting.height, CV_64FC2);
 
-    double z_shannon = MAX(param.width, param.height) * pow(param.pixel_size, 2) / param.lambda; //On définit le critère de Shannon pour utiliser la méthode la plus adaptée
+    double z_shannon = MAX(setting.width, setting.height) * pow(setting.pixel_size, 2) / setting.lambda; //Shannon's criterion for using the most suitable method is defined as follows
 
-    if (param.z >= z_shannon)
+    if (setting.z >= z_shannon)
     {
-        //Réponse impulsionnelle analytique dans le domaine spatial + FFT
-        cout << "Reponse impulsionnelle\n";
+        //Analytical impulse response in the space domain + FFT
+        cout << "Impulse response\n";
         double x, y;
-        
-        complex<double> n0_sur_i_pi_lambda_z = param.n0 / 1i / param.lambda / param.z;
 
-        for (int i = 0; i < param.width; i++)
+        complex<double> n0_on_i_pi_lambda_z = setting.n0 / 1i / setting.lambda / setting.z;
+
+        for (int i = 0; i < setting.width; i++)
         {
-            x = (i - (floor(0.5 * ((double)param.width - 1)) + 1)) * param.pixel_size;
-            for (int j = 0; j < param.height; j++)
+            x = (i - (floor(0.5 * ((double)setting.width - 1)) + 1)) * setting.pixel_size;
+            for (int j = 0; j < setting.height; j++)
             {
-                y = (j - (floor(0.5 * ((double)param.height - 1)) + 1)) * param.pixel_size;
+                y = (j - (floor(0.5 * ((double)setting.height - 1)) + 1)) * setting.pixel_size;
 
-                calc_inter = exp(param.n0 * 1i * CV_PI / param.lambda / param.z * (pow(x, 2) + pow(y, 2))) * exp(1i * k0 * param.z);
-               
-                //Calcul de Hz (propagation)
+                temp_calcul = exp(setting.n0 * 1i * CV_PI / setting.lambda / setting.z * (pow(x, 2) + pow(y, 2))) * exp(1i * k0 * setting.z);
+                //hz.at<Vec2d>(i, j)[0] = calc_inter.real();
+                //hz.at<Vec2d>(i, j)[1] = calc_inter.imag();
+
+                //Calcul of Hz (propagation)
                 Hz_temp = &Hz.at<Vec2d>(i, j);
-                (*Hz_temp)[0] = calc_inter.real() * n0_sur_i_pi_lambda_z.real() - calc_inter.imag() * n0_sur_i_pi_lambda_z.imag();
-                (*Hz_temp)[1] = calc_inter.real() * n0_sur_i_pi_lambda_z.imag() + calc_inter.imag() * n0_sur_i_pi_lambda_z.real();
+                (*Hz_temp)[0] = temp_calcul.real() * n0_on_i_pi_lambda_z.real() - temp_calcul.imag() * n0_on_i_pi_lambda_z.imag();
+                (*Hz_temp)[1] = temp_calcul.real() * n0_on_i_pi_lambda_z.imag() + temp_calcul.imag() * n0_on_i_pi_lambda_z.real();
 
-                //Calcul de H_z (rétro-propagation) : même méthode que pour Hz mais en remplaçant z par -z
+                //Calcul of H_z (back-propagation): same method as for Hz but replacing z by -z
                 H_z_temp = &H_z.at<Vec2d>(i, j);
-                (*H_z_temp)[0] = calc_inter.real() * (-n0_sur_i_pi_lambda_z.real()) - calc_inter.imag() * n0_sur_i_pi_lambda_z.imag();
-                (*H_z_temp)[1] = calc_inter.real() * (-n0_sur_i_pi_lambda_z.imag()) + calc_inter.imag() * n0_sur_i_pi_lambda_z.real();
+                (*H_z_temp)[0] = temp_calcul.real() * (-n0_on_i_pi_lambda_z.real()) - temp_calcul.imag() * n0_on_i_pi_lambda_z.imag();
+                (*H_z_temp)[1] = temp_calcul.real() * (-n0_on_i_pi_lambda_z.imag()) + temp_calcul.imag() * n0_on_i_pi_lambda_z.real();
             }
         }
-        double pixel_size_carre = pow(param.pixel_size, 2);
+        double pixel_size_square = pow(setting.pixel_size, 2);
 
-        change_quadrants(Hz, Hz);
+        swap_quadrants(Hz, Hz);
         dft(Hz, Hz, DFT_COMPLEX_OUTPUT);
-        multiply(pixel_size_carre, Hz, Hz);
+        multiply(pixel_size_square, Hz, Hz);
 
-        change_quadrants(H_z, H_z);
+        swap_quadrants(H_z, H_z);
         dft(H_z, H_z, DFT_COMPLEX_OUTPUT);
-        multiply(pixel_size_carre, H_z, H_z);
+        multiply(pixel_size_square, H_z, H_z);
     }
     else
     {
-        //Fonction de transfert analytique dans le domaine de Fourier
-        cout << "Fonction de transfert\n";
+        //Fourier-domain analytical transfer function
+        cout << "Transfer function\n";
         double u, v;
-        complex<double> i_pi_lambda_z = -1i * CV_PI * param.lambda * param.z / param.n0;
+        complex<double> i_pi_lambda_z = -1i * CV_PI * setting.lambda * setting.z / setting.n0;
 
-        for (int i = 0; i < param.width; i++)
+        for (int i = 0; i < setting.width; i++)
         {
-            u = (i - (floor(0.5 * ((double)param.width - 1)) + 1)) / param.width / param.pixel_size;
-            for (int j = 0; j < param.height; j++)
+            u = (i - (floor(0.5 * ((double)setting.width - 1)) + 1)) / setting.width / setting.pixel_size;
+            for (int j = 0; j < setting.height; j++)
             {
-                v = (j - (floor(0.5 * ((double)param.height - 1)) + 1)) / param.height / param.pixel_size;
+                v = (j - (floor(0.5 * ((double)setting.height - 1)) + 1)) / setting.height / setting.pixel_size;
 
-                //Calcul de Hz (propagation)
-
-                calc_inter = exp(i_pi_lambda_z * (pow(u, 2) + pow(v, 2))) * exp(1i * k0 * param.z);
+                //Calcul of Hz (propagation)
+                temp_calcul = exp(i_pi_lambda_z * (pow(u, 2) + pow(v, 2))) * exp(1i * k0 * setting.z);
 
                 Hz_temp = &Hz.at<Vec2d>(i, j);
-                (*Hz_temp)[0] = calc_inter.real();
-                (*Hz_temp)[1] = calc_inter.imag();
+                (*Hz_temp)[0] = temp_calcul.real();
+                (*Hz_temp)[1] = temp_calcul.imag();
 
-                
-                //Calcul de H_z (rétro-propagation) : même méthode que pour Hz mais en remplaçant z par -z
-
+                //Calcul of H_z (back-propagation): same method as for Hz but replacing z by -z
                 H_z_temp = &H_z.at<Vec2d>(i, j);
-                (*H_z_temp)[0] = calc_inter.real();
-                (*H_z_temp)[1] = -calc_inter.imag();
+                (*H_z_temp)[0] = temp_calcul.real();
+                (*H_z_temp)[1] = -temp_calcul.imag();
             }
         }
-        change_quadrants(Hz, Hz);
-        change_quadrants(H_z, H_z);
+        swap_quadrants(Hz, Hz);
+        swap_quadrants(H_z, H_z);
     }
 }
 
-void kernel_propagation_fresnel(const Parametres& param, Mat& Hz, Mat& H_z, bool flag_phaseref, TYPE_HOLOGRAM type_hologram, bool flag_linearize, TYPE_OBJ type_obj)
+void fresnel_propagation_kernel(const Settings& setting, Mat& Hz, Mat& H_z, bool flag_phaseref, HOLOGRAM_TYPE hologram_type, bool flag_linearize, OBJ_TYPE object_type)
 {
-    KERNEL_TYPE type_kernel = HZ;
+    KERNEL_TYPE kernel_type = HZ;
 
-    if (type_hologram == INTENSITE && flag_linearize)
+    if (hologram_type == INTENSITY && flag_linearize)
     {
         flag_phaseref = false;
-        type_kernel = GZ_DEPHASING;
+        kernel_type = GZ_DEPHASING;
 
-        if (type_obj == ABSORBING) type_kernel = GZ_ABSORBING;
+        if (object_type == ABSORBING) kernel_type = GZ_ABSORBING;
     }
 
-    complex<double> calc_inter;
-    double k0 = 2 * param.n0 * CV_PI / param.lambda; //Constante k0
+    complex<double> temp_calcul;
+    double k0 = 2 * setting.n0 * CV_PI / setting.lambda; //Constant k0
     Vec2d* temp;
-    Hz = Mat(param.width, param.height, CV_64FC2);
+    Hz = Mat(setting.width, setting.height, CV_64FC2);
     Mat mat_split[2];
 
-    double z_shannon = MAX(param.width, param.height) * pow(param.pixel_size, 2) / param.lambda; //On définit le critère de Shannon pour utiliser la méthode la plus adaptée
+    double z_shannon = MAX(setting.width, setting.height) * pow(setting.pixel_size, 2) / setting.lambda; //Shannon's criterion for using the most suitable method is defined as follows
 
-    if (param.z >= z_shannon)
+    if (setting.z >= z_shannon)
     {
-        //Réponse impulsionnelle analytique dans le domaine spatial + FFT
-        cout << "Reponse impulsionnelle\n";
+        //Analytical impulse response in the space domain + FFT
+        cout << "Impulse response\n";
 
         double x, y;
-        complex<double> n0_sur_i_lambda_z = param.n0 / 1i / param.lambda / param.z;
+        complex<double> n0_on_i_lambda_z = setting.n0 / 1i / setting.lambda / setting.z;
 
-        //Mat hz(param.width, param.height, CV_64FC2);
-
-        for (int i = 0; i < param.width; i++)
+        for (int i = 0; i < setting.width; i++)
         {
-            x = (i - (floor(0.5 * ((double)param.width - 1)) + 1)) * param.pixel_size;
-            for (int j = 0; j < param.height; j++)
+            x = (i - (floor(0.5 * ((double)setting.width - 1)) + 1)) * setting.pixel_size;
+            for (int j = 0; j < setting.height; j++)
             {
-                y = (j - (floor(0.5 * ((double)param.height - 1)) + 1)) * param.pixel_size;
+                y = (j - (floor(0.5 * ((double)setting.height - 1)) + 1)) * setting.pixel_size;
 
-                calc_inter = exp(param.n0 * 1i * CV_PI / param.lambda / param.z * (pow(x, 2) + pow(y, 2)));
+                temp_calcul = exp(setting.n0 * 1i * CV_PI / setting.lambda / setting.z * (pow(x, 2) + pow(y, 2)));
 
                 temp = &Hz.at<Vec2d>(i, j);
-                (*temp)[0] = calc_inter.real();
-                (*temp)[1] = calc_inter.imag();
+                (*temp)[0] = temp_calcul.real();
+                (*temp)[1] = temp_calcul.imag();
             }
         }
-        multiplier_cmplx(n0_sur_i_lambda_z, Hz, Hz);
+        complex_multiply(n0_on_i_lambda_z, Hz, Hz);
 
         if (flag_phaseref)
         {
-            calc_inter = exp(1i * k0 * param.z);
-            multiplier_cmplx(calc_inter, Hz, Hz);
+            temp_calcul = exp(1i * k0 * setting.z);
+            complex_multiply(temp_calcul, Hz, Hz);
         }
 
-        if (type_kernel != HZ)
+        if (kernel_type != HZ)
         {
             split(Hz, mat_split);
-            if (type_kernel == GZ_DEPHASING)
+            if (kernel_type == GZ_DEPHASING)
             {
                 mat_split[0] = 0;
                 mat_split[1] = -2 * mat_split[1];
             }
-            if (type_kernel == GZ_ABSORBING)
+            if (kernel_type == GZ_ABSORBING)
             {
                 mat_split[0] = 2 * mat_split[0];
                 mat_split[1] = 0;
@@ -396,230 +393,232 @@ void kernel_propagation_fresnel(const Parametres& param, Mat& Hz, Mat& H_z, bool
             merge(mat_split, 2, Hz);
         }
 
-        change_quadrants(Hz, Hz);
+        swap_quadrants(Hz, Hz);
         dft(Hz, Hz, DFT_COMPLEX_OUTPUT);
-        multiply(pow(param.pixel_size, 2), Hz, Hz);
+        multiply(pow(setting.pixel_size, 2), Hz, Hz);
 
+        //We do the conjugate of Hz to find H_z
         split(Hz, mat_split);
         mat_split[1] = -mat_split[1];
         merge(mat_split, 2, H_z);
     }
     else
     {
-        //Fonction de transfert analytique dans le domaine de Fourier
-        cout << "Fonction de transfert\n";
+        //Fourier-domain analytical transfer function
+        cout << "Transfer function\n";
 
         double u, v;
-        complex<double> i_pi_lambda_z = -1i * CV_PI * param.lambda * param.z / param.n0;
+        complex<double> i_pi_lambda_z = -1i * CV_PI * setting.lambda * setting.z / setting.n0;
 
-        for (int i = 0; i < param.width; i++)
+        for (int i = 0; i < setting.width; i++)
         {
-            u = (i - (floor(0.5 * ((double)param.width - 1)) + 1)) / param.width / param.pixel_size;
-            for (int j = 0; j < param.height; j++)
+            u = (i - (floor(0.5 * ((double)setting.width - 1)) + 1)) / setting.width / setting.pixel_size;
+            for (int j = 0; j < setting.height; j++)
             {
-                v = (j - (floor(0.5 * ((double)param.height - 1)) + 1)) / param.height / param.pixel_size;
+                v = (j - (floor(0.5 * ((double)setting.height - 1)) + 1)) / setting.height / setting.pixel_size;
 
-                calc_inter = exp(i_pi_lambda_z * (pow(u, 2) + pow(v, 2)));
+                temp_calcul = exp(i_pi_lambda_z * (pow(u, 2) + pow(v, 2)));
 
                 temp = &Hz.at<Vec2d>(i, j);
-                (*temp)[0] = calc_inter.real();
-                (*temp)[1] = calc_inter.imag();
+                (*temp)[0] = temp_calcul.real();
+                (*temp)[1] = temp_calcul.imag();
             }
         }
-        change_quadrants(Hz, Hz);
+        swap_quadrants(Hz, Hz);
 
         if (flag_phaseref)
         {
-            calc_inter = exp(1i * k0 * param.z);
-            multiplier_cmplx(calc_inter, Hz, Hz);
+            temp_calcul = exp(1i * k0 * setting.z);
+            complex_multiply(temp_calcul, Hz, Hz);
         }
 
-        if (type_kernel != HZ)
+        if (kernel_type != HZ)
         {
+            idft(Hz, Hz, DFT_COMPLEX_OUTPUT);
             split(Hz, mat_split);
-            if (type_kernel == GZ_DEPHASING)
+            if (kernel_type == GZ_DEPHASING)
             {
                 mat_split[0] = 0;
                 mat_split[1] = -2 * mat_split[1];
             }
-            if (type_kernel == GZ_ABSORBING)
+            if (kernel_type == GZ_ABSORBING)
             {
                 mat_split[0] = 2 * mat_split[0];
                 mat_split[1] = 0;
             }
             merge(mat_split, 2, Hz);
+            dft(Hz, Hz, DFT_COMPLEX_OUTPUT);
         }
 
-        change_quadrants(Hz, Hz);
-        dft(Hz, Hz, DFT_COMPLEX_OUTPUT);
-        multiply(pow(param.pixel_size, 2), Hz, Hz);
-
+        //We do the conjugate of Hz to find H_z
         split(Hz, mat_split);
         mat_split[1] = -mat_split[1];
         merge(mat_split, 2, H_z);
     }
 }
 
-void reconstitution(const Mat& hologramme, Mat& img_reconstituee, Parametres& param, int bordure)
+void reconstitution(const Mat& hologram, Mat& reconstituted_image, Settings& setting, int pad)
 {
-    int taille_initiale[] = { hologramme.rows, hologramme.cols };
+    int initial_size[] = { hologram.rows, hologram.cols };
 
-    hologramme.convertTo(hologramme, CV_64F);
-    sqrt(hologramme, hologramme); //On fait la racine carré de l'hologramme, car les données récupérées sont le carré du module
+    hologram.convertTo(hologram, CV_64F);
+    sqrt(hologram, hologram); //We do the square root of the hologram, because the recovered data are the square of the module
 
-    Mat hologramme_optimal;
-    padding(hologramme, taille_initiale[0] * 2, taille_initiale[1] * 2, bordure, hologramme_optimal); //On double la taille de l'image pour éviter le repliement
+    Mat optimal_hologram;
+    padding(hologram, initial_size[0] * 2, initial_size[1] * 2, pad, optimal_hologram); //Double the size of the image to avoid aliasing
 
-    optimal_TF(hologramme_optimal, bordure, hologramme_optimal);
+    optimal_FT(optimal_hologram, pad, optimal_hologram);
 
-    int taille_finale[] = { hologramme_optimal.rows, hologramme_optimal.cols };
+    int final_size[] = { optimal_hologram.rows, optimal_hologram.cols };
 
-    //On modifie les paramètres de la taille
-    param.width = taille_finale[0];
-    param.height = taille_finale[1];
+    //We change the size parameters
+    setting.width = final_size[0];
+    setting.height = final_size[1];
 
-    hologramme_optimal.convertTo(hologramme_optimal, CV_64FC1);
+    optimal_hologram.convertTo(optimal_hologram, CV_64FC1);
 
     Mat Hz, H_z;
-    fresnel_propagator(param, Hz, H_z); //On récupère les 2 kernel en fonction des paramètres ci-dessus
+    fresnel_propagator(setting, Hz, H_z); //We recover the 2 kernel according to the above parameters
 
-    Mat fourier_hologramme;
-    dft(hologramme_optimal, fourier_hologramme, DFT_COMPLEX_OUTPUT); //On réalise la transformée de Fourier de l'hologramme
+    Mat fourier_hologram;
+    dft(optimal_hologram, fourier_hologram, DFT_COMPLEX_OUTPUT); //We do the Fourier transform of the hologram
 
-    Mat produit;
-    multiplier_cmplx(fourier_hologramme, H_z, produit); //On multiplie le TF avec le kernel (entrée et sortie complexes)
+    Mat product;
+    complex_multiply(fourier_hologram, H_z, product); //We multiply the TF with the kernel (complex input and output)
 
-    Mat TF_inverse;
-    idft(produit, TF_inverse, DFT_COMPLEX_OUTPUT); //On réalise la transformée de Fourier inverse du produit
+    Mat inverse_FT;
+    idft(product, inverse_FT, DFT_COMPLEX_OUTPUT); //We perform the inverse Fourier transform of the product
 
-    //On reduit l'image reconstituée pour ne garder que la partie centrale qui correspond au résultat
-    int marge_rows = floor(1.0 * (taille_finale[0] - taille_initiale[0]) / 2), marge_cols = floor(1.0 * (taille_finale[1] - taille_initiale[1]) / 2);
-    Mat(TF_inverse, Rect(marge_rows, marge_cols, taille_initiale[0], taille_initiale[1])).copyTo(img_reconstituee);
+    //We reduce the reconstructed image to keep only the central part that corresponds to the result
+    int row_margin = floor(1.0 * (final_size[0] - initial_size[0]) / 2), col_margin = floor(1.0 * (final_size[1] - initial_size[1]) / 2);
+    Mat(inverse_FT, Rect(row_margin, col_margin, initial_size[0], initial_size[1])).copyTo(reconstituted_image);
 
 }
 
-void reconstitution_cmplx(const Mat& hologramme_real, const Mat& hologramme_imag, Mat& img_reconstituee, Parametres& param, int bordure_Re, int bordure_Im)
+void complex_reconstitution(const Mat& real_hologram, const Mat& imag_hologram, Mat& reconstituted_image, Settings& setting, int pad_Re, int pad_Im)
 {
-    //Pour la reconstitution d'un hologramme complexe, c'est exactement la même méthode qu'un hologramme simple
+    //For the reconstruction of a complex hologram, it's exactly the same method as a simple hologram
 
-    Mat hologramme_cmplx[] = { hologramme_real, hologramme_imag }; //On crée l'hologramme complexe sous forme Re + i*Im
+    Mat complex_hologram[] = { real_hologram, imag_hologram }; //We create the complex hologram in the form: Re + i*Im
 
-    Mat hologramme;
-    merge(hologramme_cmplx, 2, hologramme);
+    Mat hologram;
+    merge(complex_hologram, 2, hologram);
 
-    int taille_initiale[] = { hologramme.rows, hologramme.cols };
+    int initial_size[] = { hologram.rows, hologram.cols };
 
-    Mat hologramme_optimal_cmplx[2];
+    Mat optimal_complex_hologram[2];
 
-    //On multiplie par 2 la taille de l'hologramme pour éviter le repliement
-    padding(hologramme_cmplx[0], taille_initiale[0] * 2, taille_initiale[1] * 2, bordure_Re, hologramme_optimal_cmplx[0]);
-    optimal_TF(hologramme_optimal_cmplx[0], bordure_Re, hologramme_optimal_cmplx[0]);
+    //Double the size of the image to avoid aliasing
+    padding(complex_hologram[0], initial_size[0] * 2, initial_size[1] * 2, pad_Re, optimal_complex_hologram[0]);
+    optimal_FT(optimal_complex_hologram[0], pad_Re, optimal_complex_hologram[0]);
 
-    padding(hologramme_cmplx[1], taille_initiale[0] * 2, taille_initiale[1] * 2, bordure_Im, hologramme_optimal_cmplx[1]);
-    optimal_TF(hologramme_optimal_cmplx[1], bordure_Im, hologramme_optimal_cmplx[1]);
+    padding(complex_hologram[1], initial_size[0] * 2, initial_size[1] * 2, pad_Im, optimal_complex_hologram[1]);
+    optimal_FT(optimal_complex_hologram[1], pad_Im, optimal_complex_hologram[1]);
 
-    Mat hologramme_optimal;
-    merge(hologramme_optimal_cmplx, 2, hologramme_optimal);
+    Mat optimal_hologram;
+    merge(optimal_complex_hologram, 2, optimal_hologram);
 
-    int taille_finale[] = { hologramme_optimal.rows, hologramme_optimal.cols };
+    int final_size[] = { optimal_hologram.rows, optimal_hologram.cols };
 
-    //On modifie les paramètres de la taille
-    param.width = taille_finale[0];
-    param.height = taille_finale[1];
+    //We change the size parameters
+    setting.width = final_size[0];
+    setting.height = final_size[1];
 
-    hologramme_optimal.convertTo(hologramme_optimal, CV_64FC2);
+    optimal_hologram.convertTo(optimal_hologram, CV_64FC2);
 
     Mat Hz, H_z;
-    fresnel_propagator(param, Hz, H_z); //On récupère les 2 kernel en fonction des paramètres ci-dessus
+    fresnel_propagator(setting, Hz, H_z); //We recover the 2 kernel according to the above parameters
 
-    Mat fourier_hologramme;
-    dft(hologramme_optimal, fourier_hologramme, DFT_COMPLEX_INPUT | DFT_COMPLEX_OUTPUT); //On réalise la transformée de Fourier de l'hologramme (dans ce cas, l'entrée et la sortie sont complexes)
+    Mat fourier_hologram;
+    dft(optimal_hologram, fourier_hologram, DFT_COMPLEX_INPUT | DFT_COMPLEX_OUTPUT); //The Fourier transform of the hologram is performed (in this case, the input and output are complex)
 
-    Mat produit;
-    multiplier_cmplx(fourier_hologramme, H_z, produit); //On multiplie le TF avec le kernel (entrée et sortie complexes)
+    Mat product;
+    complex_multiply(fourier_hologram, H_z, product); //We multiply the TF with the kernel (complex input and output)
 
-    Mat TF_inverse;
-    idft(produit, TF_inverse, DFT_COMPLEX_OUTPUT); //On réalise la transformée de Fourier inverse du produit
+    Mat inverse_FT;
+    idft(product, inverse_FT, DFT_COMPLEX_OUTPUT); //We perform the inverse Fourier transform of the product
 
-    //On reduit l'image reconstituée pour ne garder que la partie centrale qui correspond au résultat
-    int marge_rows = floor(1.0 * (taille_finale[0] - taille_initiale[0]) / 2), marge_cols = floor(1.0 * (taille_finale[1] - taille_initiale[1]) / 2);
-    Mat(TF_inverse, Rect(marge_rows, marge_cols, taille_initiale[0], taille_initiale[1])).copyTo(img_reconstituee);
+    //We reduce the reconstructed image to keep only the central part that corresponds to the result
+    int marge_rows = floor(1.0 * (final_size[0] - initial_size[0]) / 2), marge_cols = floor(1.0 * (final_size[1] - initial_size[1]) / 2);
+    Mat(inverse_FT, Rect(marge_rows, marge_cols, initial_size[0], initial_size[1])).copyTo(reconstituted_image);
 }
 
-void reconstitution_fienup(const Mat& hologramme, Mat& img_reconstituee, Parametres& param, int nb_repetition)
+void fienup_reconstitution(const Mat& hologram, Mat& reconstituted_image, Settings& setting, int repetitions)
 {
-    double e1, e2, secondes;
+    double e1, e2, seconds;
 
     Mat temp;
-    hologramme.convertTo(temp, CV_64F);
-    sqrt(temp, temp); //On fait la racine carré de l'hologramme, car les données récupérées sont le carré du module
+    hologram.convertTo(temp, CV_64F);
+    sqrt(temp, temp); //We do the square root of the hologram, because the recovered data are the square of the module
 
-    int taille_initiale[] = { hologramme.rows, hologramme.cols };
+    int initial_size[] = { hologram.rows, hologram.cols };
 
-    Scalar moyenne = mean(temp); //On calcule la moyenne de l'image
-    temp /= moyenne; //On normalise l'image en la divisant par sa moyenne
-    int bordure = 1; //On met une bordure de 1 car on a normalisé en divisant par la moyenne
+    Scalar mean_value = mean(temp); //We calculate the average of the image
+    temp /= mean_value; //We normalize the image by dividing it by its average
+    int pad = 1; //We put a border of 1 because we normalized by dividing by the mean
 
-    Mat hologramme_optimal;
-    padding(temp, taille_initiale[0] * 2, taille_initiale[1] * 2, bordure, hologramme_optimal); //On double la taille de l'image pour éviter le repliement
-    optimal_TF(hologramme_optimal, bordure, hologramme_optimal);
+    Mat optimal_hologram;
+    padding(temp, initial_size[0] * 2, initial_size[1] * 2, pad, optimal_hologram); //Double the size of the image to avoid aliasing
+    optimal_FT(optimal_hologram, pad, optimal_hologram);
 
-    int taille_finale[] = { hologramme_optimal.rows, hologramme_optimal.cols };
+    int final_size[] = { optimal_hologram.rows, optimal_hologram.cols };
 
-    //On modifie les paramètres de la taille
-    param.width = taille_finale[0];
-    param.height = taille_finale[1];
+    //We change the size parameters
+    setting.width = final_size[0];
+    setting.height = final_size[1];
 
     Mat Hz, H_z;
     e1 = getTickCount();
-    //fresnel_propagator(param, Hz, H_z); //On récupère les 2 kernel en fonction des paramètres ci-dessus
-    kernel_propagation_fresnel(param, Hz, H_z);
+
+    //fresnel_propagator(param, Hz, H_z); //Old function
+    fresnel_propagation_kernel(setting, Hz, H_z); //We recover the 2 kernel according to the above parameters
 
     e2 = getTickCount();
-    secondes = (e2 - e1) / getTickFrequency();
-    cout << "Fresnel : " << secondes << " secondes\n";
+    seconds = (e2 - e1) / getTickFrequency();
+    cout << "Fresnel : " << seconds << " seconds\n";
 
-    Mat hologramme_iteration; //La matrice qui sera récupérée et modifiée à chaque itération
-    hologramme_optimal.copyTo(hologramme_iteration);
+    Mat hologram_iteration; //The matrix that will be retrieved and modified at each iteration
+    optimal_hologram.copyTo(hologram_iteration);
 
-    Mat TF, produit_TF, TF_inverse; //Matrice pour Fourier
+    Mat FT, FT_product, inverse_FT; //Fourier matrix
     Mat mat_split[2], module1;
 
-    for (int i = 0; i < nb_repetition; i++)
+    for (int i = 0; i < repetitions; i++)
     {
         e1 = getTickCount();
-        //Retro - propagation
-        dft(hologramme_iteration, TF, DFT_COMPLEX_OUTPUT);
-        multiplier_cmplx(TF, H_z, produit_TF);
-        idft(produit_TF, TF_inverse, DFT_COMPLEX_OUTPUT);
 
-        //On recrée une image en passant le module à 1 : module1 = TF_inverse / abs(TF_inverse) avec partie réelle et partie imaginaire positives
-        split(TF_inverse, mat_split);
-        max(0, mat_split[0], mat_split[0]); //On force la partie réelle positive
-        max(0, mat_split[1], mat_split[1]); //On force la partie imaginaire positive
-        magnitude(mat_split[0], mat_split[1], temp); //Calcul du module
+        //Backpropagation
+        dft(hologram_iteration, FT, DFT_COMPLEX_OUTPUT);
+        complex_multiply(FT, H_z, FT_product);
+        idft(FT_product, inverse_FT, DFT_COMPLEX_OUTPUT);
+
+        //We recreate an image by changing the module to 1: module1 = inverse_FT / abs(inverse_FT) with positive real part and positive imaginary part
+        split(inverse_FT, mat_split);
+        max(0, mat_split[0], mat_split[0]); //We force the real positive part
+        max(0, mat_split[1], mat_split[1]); //We force the positive imaginary part
+        magnitude(mat_split[0], mat_split[1], temp); //Calcul of the module
         divide(1, temp, temp);
-        merge(mat_split, 2, TF_inverse);
-        my_multiply(temp, TF_inverse, module1);
+        merge(mat_split, 2, inverse_FT);
+        my_multiply(temp, inverse_FT, module1);
 
         //Propagation
-        dft(module1, TF, DFT_COMPLEX_OUTPUT);
-        multiplier_cmplx(TF, Hz, produit_TF);
-        idft(produit_TF, TF_inverse, DFT_COMPLEX_OUTPUT);
+        dft(module1, FT, DFT_COMPLEX_OUTPUT);
+        complex_multiply(FT, Hz, FT_product);
+        idft(FT_product, inverse_FT, DFT_COMPLEX_OUTPUT);
 
-        //On remet les données initiales de l'hologramme : hologramme_iteration = hologramme_optimal * TF_inverse / abs(TF_inverse)
-        split(TF_inverse, mat_split);
-        magnitude(mat_split[0], mat_split[1], temp); //Calcul du module
-        divide(hologramme_optimal, temp, temp);
-        my_multiply(temp, TF_inverse, hologramme_iteration);
+        //The initial data of the hologram are reset: hologram_iteration = optimal_hologram * inverse_FT / abs(inverse_FT)
+        split(inverse_FT, mat_split);
+        magnitude(mat_split[0], mat_split[1], temp); //Calcul of the module
+        divide(optimal_hologram, temp, temp);
+        my_multiply(temp, inverse_FT, hologram_iteration);
 
         e2 = getTickCount();
-        secondes = (e2 - e1) / getTickFrequency();
-        cout << "itération " << i << " : " << secondes << " secondes\n";
+        seconds = (e2 - e1) / getTickFrequency();
+        cout << "iteration " << i << " : " << seconds << " seconds\n";
     }
 
-    //On reduit l'image reconstituée pour ne garder que la partie centrale qui correspond au résultat
-    int marge_rows = floor(1.0 * (taille_finale[0] - taille_initiale[0]) / 2), marge_cols = floor(1.0 * (taille_finale[1] - taille_initiale[1]) / 2);
-    Mat(module1, Rect(marge_rows, marge_cols, taille_initiale[0], taille_initiale[1])).copyTo(img_reconstituee);
+    //We reduce the reconstructed image to keep only the central part that corresponds to the result
+    int row_margin = floor(1.0 * (final_size[0] - initial_size[0]) / 2), col_margin = floor(1.0 * (final_size[1] - initial_size[1]) / 2);
+    Mat(module1, Rect(row_margin, col_margin, initial_size[0], initial_size[1])).copyTo(reconstituted_image);
 }
 
