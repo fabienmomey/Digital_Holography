@@ -2,90 +2,93 @@
 #include "function.h"
 
 #include <iostream>
-#include <opencv2/opencv.hpp>
+//#include <stdio.h>
+//#include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
 
 using namespace std;
 using namespace cv;
 
-int main()
+int main(int argc, char* argv[])
 {
-    unsigned long long int e1 = getTickCount();
-    cout << "Hello World!\n";
 
-    //Hologram reconstitution -------------------------------------------------------------------------------------------------------------------------------------------------
+    //Hologram reconstruction with the "Fienup" method -------------------------------------------------------------------------------------------------------------------------------------------
 
-    string string_table[] =
+    double e1 = getTickCount();
+    
+    string source_file, dest_files;
+    double start_z, end_z, step_z, lambda, pixel;
+    int do_padding;
+    
+    //If all parameters are filled in
+    if (argc >= 9)
     {
-        "./Bead_simulations/data_GaussBeads_Sept2019_pure_phase_FR_mag5.67e+01_z1.25e-05.tif" ,                     //0
-        "./Bead_simulations/datafull_GaussBeads_Sept2019_pure_phase_FR_mag5.67e+01_z1.25e-05.tif",                  //1
-        "./Bead_simulations/datalinear_GaussBeads_Sept2019_pure_phase_FR_mag5.67e+01_z1.25e-05.tif",                //2
-        "./Bead_simulations/ground_truth_GaussBeads_Sept2019_pure_phase_FR_mag5.67e+01_z1.25e-05.tif",              //3
-        "./Bead_simulations/real_cplx_hologram_GaussBeads_Sept2019_pure_phase_FR_mag5.67e+01_z1.25e-05-0001.tif",   //4
-        "./Bead_simulations/imag_cplx_hologram_GaussBeads_Sept2019_pure_phase_FR_mag5.67e+01_z1.25e-05-0002.tif"    //5
-    };
-
-    Settings hologram_setting1;
-    hologram_setting1.z = 12.5e-6;
-    hologram_setting1.mag = 56.7;
-    hologram_setting1.lambda = 532e-9;
-    hologram_setting1.n0 = 1.52;
-    hologram_setting1.pixel_size = 4.4e-6 / hologram_setting1.mag;
-
-    //Reconstruction with the "Fienup" method -------------------------------------------------------------------------------------------------------------------------------------------
-
-    string hologram_path[] =
+        source_file = argv[1];
+        dest_files = argv[2];
+        start_z = atof(argv[3]);
+        end_z = atof(argv[4]);
+        step_z = atof(argv[5]);
+        lambda = atof(argv[6]);
+        pixel = atof(argv[7]);
+        do_padding = atoi(argv[8]);
+    }
+    //Else : load default parameters
+    else
     {
-        "./2019_06_07_billes1mu_63_JOSAA/Basler daA1920-30um (22030948)_20190607_122251706_0012.tiff",      //Initial hologram
-        "./2019_06_07_billes1mu_63_JOSAA/Basler daA1920-30um (22030948)_20190607_122251706_0012_crop.tiff"  //Zoom on the hologram
-    };
-
-    Settings hologram_setting2;
-    hologram_setting2.z = 7.2822e-6;
-    hologram_setting2.mag = 56.7;
-    hologram_setting2.lambda = 532e-9;
-    hologram_setting2.n0 = 1.52;
-    hologram_setting2.pixel_size = 2.2e-6 / hologram_setting2.mag;
-
-
-    int repetitions = 10;
-
-    Mat hologram = imread(hologram_path[1], IMREAD_UNCHANGED);
-
+        source_file = "2019_06_07_billes1mu_63_JOSAA/Basler daA1920-30um (22030948)_20190607_122251706_0012_crop.tiff";
+        dest_files = "output/propagation/";
+        start_z = 5e-6;
+        end_z = 10e-6;
+        step_z = 0.5e-6;
+        lambda = 532e-9;
+        pixel = 3.88e-8;
+        do_padding = 1;
+    }
+    
+    //The initial hologram 
+    Mat hologram = imread(source_file, IMREAD_UNCHANGED);
     if (hologram.empty())
     {
         cout << "Cannot open or read the image\n";
         return -1;
     }
 
+    Settings param;
+    param.lambda = lambda;
+    param.pixel_size = pixel;
+
+    param.mag = 56.7;
+    param.n0 = 1.52;
+    
+    /*
+    CalculMethod calcul_method;
+    if (argv[9] == 1) calcul_method = PHASE_CALCUL;
+    else calcul_method = MODULE_CALCUL;
+    */
+
+    int repetitions = 5;
     Mat reconstitued_image;
-    fienup_reconstitution(hologram, reconstitued_image, hologram_setting2, repetitions);
+    string dest_name;
+    
+    int i = 1;
 
-    image_display(hologram, "Initial image");
+    //We reconstitute the hologram for each z value between start_zand end_z with a step_z between each value
 
-    complex_display(reconstitued_image, reconstitued_image, PHASE_CALCUL);
-    image_display(reconstitued_image, "Reconstitued image"); //The result is displayed
-
-
-    cout << "\nThe program ran in ";
-
-    unsigned long long int e2 = getTickCount();
-    unsigned long long int seconds = (e2 - e1) / getTickFrequency();
-    if (seconds >= 60)
+    for (double z = start_z; z <= end_z; z+=step_z)
     {
-        int minutes = seconds / 60;
-        seconds = seconds % 60;
-        if (minutes >= 60)
-        {
-            int hours = minutes / 60;
-            minutes = minutes % 60;
-            cout << hours << "h" << minutes << "m" << seconds << "s !\n";
-        }
-        else cout << minutes << "m" << seconds << "s !\n";
+        param.z = z;
+        fienup_reconstitution(hologram, reconstitued_image, param, repetitions, do_padding); //Hologram reconstitution
+        complex_display(reconstitued_image, reconstitued_image, PHASE_CALCUL); //Converting the final complex image into a displayable image by calculating its phase
+        normalize(reconstitued_image, reconstitued_image, 0, 65535, NORM_MINMAX); //Normalizing the image so that it can be registered under an extension on 16 bits
+        reconstitued_image.convertTo(reconstitued_image, CV_16U);
+        dest_name = dest_files + "Reconstitued_image_" + to_string(i) + ".png";
+        imwrite(dest_name, reconstitued_image); //Save the final_image
+        i++;
     }
-    else cout << seconds << " seconds !\n";
 
-    waitKey(0); //Waiting for a key to be pressed
-    destroyAllWindows(); //We're closing all the open windows
+    double e2 = getTickCount();
+    double seconds = (e2 - e1) / getTickFrequency();
+    cout << "\nThe program ran in " << seconds << " seconds !\n";
+
     return 0;
 }

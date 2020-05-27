@@ -67,13 +67,6 @@ struct Settings
 };
 
 /*
-Calculates the histogram of an image (color or grayscale)
-@param initial_image: The matrix containing the image to be histographed (not modifiable)
-@param image_hist: The matrix containing the histogram
-*/
-void histogram_calcul(const Mat& initial_image, Mat& image_hist);
-
-/*
 Multiplies 2 matrices, element by element, with one real matrix and the other in complex notation: M * (A + iB) = MA + iMB
 @param simple_mat: The real matrix to be multiplied (noy modifiable)
 @param complex_mat: The complex matrix to be multiplied (not modifiable)
@@ -132,29 +125,6 @@ Allows to swap the 4 quadrants of the image (the 4 quarters of the image)
 void swap_quadrants(const Mat& initial_mat, Mat& final_mat);
 
 /*
-Displays an image
-@param image: The matrix of the image to be displayed (not modifiable)
-@param name: The name of the window in which the image will be displayed
-@param norm: Boolean which allows or not to normalize the image (by default: false)
-*/
-void image_display(const Mat& image, string name, bool norm = false);
-
-/*
-Allows to calculate the complex exponential of a matrix: exp(i*M) = cos(M) + i*sin(M)
-@param initial_mat: The matrix to calculate the complex exponential (not modifiable)
-@param final_mat: The result matrix
-*/
-void complex_exp(const Mat& initial_mat, Mat& final_mat);
-
-/*
-Allows to create a propagation and backpropagation kernel according to different parameters
-@param setting: The parameters to be used to create the kernel (not modifiable)
-@param Hz: Le pointeur vers le kernel de propagation
-@param H_z: Le pointeur vers le kernel de rétro-propagation
-*/
-void fresnel_propagator(const Settings& setting, Mat& Hz, Mat& H_z);
-
-/*
 Allows to create a propagation and backpropagation kernel according to different parameters
 @param setting: The parameters to be used to create the kernel (not modifiable)
 @param Hz: The propagation kernel
@@ -170,31 +140,11 @@ Allows to create a propagation and backpropagation kernel according to different
 void fresnel_propagation_kernel(const Settings& setting, Mat& Hz, Mat& H_z, bool flag_phaseref = false, HOLOGRAM_TYPE hologram_type = COMPLEX, bool flag_linearize = false, OBJ_TYPE object_type = DEPHASING);
 
 /*
-Allows to reconstruct an image from a hologram
-@param hologram: The matrix containing the hologram to be reconstituted (not modifiable)
-@param reconstituted_image: The matrix containing the reconstituted image
-@param setting: The parameters to be used to reconstitute the hologram
-@param pad: The border (int) to be added around the image (by default: 1)
-*/
-void reconstitution(const Mat& hologram, Mat& reconstituted_image, Settings& setting, int pad = 1);
-
-/*
-Allows to reconstruct an image from a complex hologram
-@param real_hologram: The matrix containing the real part of the hologram to be reconstituted (not modifiable)
-@param imag_hologram: The matrix containing the imaginary part of the hologram to be reconstituted (not modifiable)
-@param reconstituted_image: The matrix containing the reconstituted image
-@param setting: The parameters to be used to reconstitute the hologram
-@param pad_Re: The real part of the border (int) to be added around the image (by default: 1)
-@param pad_Im: The imaginary part of the border (int) to be added around the image (by default: 0)
-@param |----> Typically, the image is filled with the complex number 1+0i to obtain a module of 1 and a phase of 0f
-*/
-void complex_reconstitution(const Mat& real_hologram, const Mat& imag_hologram, Mat& reconstituted_image, Settings& setting, int pad_Re = 1, int pad_Im = 0);
-
-/*
 Allows to reconstruct an image from a hologram using the "Fienup" method
 @param hologram: The matrix containing the hologram to be reconstituted (not modifiable)
 @param reconstituted_image: The matrix containing the reconstituted image
 @param setting: The parameters to be used to reconstitute the hologram
-@param repetitions: The number of repetitions to be done in the algorithm (by default: 10)
+@param repetitions: The number of repetitions to be done in the algorithm
+@param do_padding: If equal to 1, we make padding by doubling the dimensions, otherwise we don't make padding
 */
-void fienup_reconstitution(const Mat& hologram, Mat& reconstituted_image, Settings& setting, int repetitions = 10);
+void fienup_reconstitution(const Mat& hologram, Mat& reconstituted_image, Settings& setting, int repetitions, int do_padding);
