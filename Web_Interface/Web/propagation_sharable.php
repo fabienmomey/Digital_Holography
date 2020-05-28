@@ -167,11 +167,11 @@ function imageZoom(imgID, resultID) {
     <!-- NavBar a Gauche -->
 
     <nav class="w3-sidebar w3-bar-block w3-collapse w3-animate-left w3-card" style="z-index:3;width:250px;" id="mySidebar">
-        <a class="w3-bar-item w3-button w3-border-bottom w3-large" href="#"><img src="logo_LaHC.png" style="width:80%;"></a>
+    <a class="w3-bar-item w3-button w3-border-bottom w3-large" href="#"><img src="logo_LaHC.png" style="width:80%;"></a>
         <a class="w3-bar-item w3-button w3-hide-large w3-large" href="javascript:void(0)" onclick="w3_close()">Close <i class="fa fa-remove"></i></a>
         <a class="w3-bar-item w3-button" href="index.php">Home</a>
         <a class="w3-bar-item w3-button w3-black" href="propagation.php">Back-Propagation</a>
-        <a class="w3-bar-item w3-button" href="optilocale.php">Local Optimization</a>
+        <a class="w3-bar-item w3-button" href="fienup.php">Fienup</a>
     </nav>
 
     <div class="w3-overlay w3-hide-large w3-animate-opacity" onclick="w3_close()" style="cursor:pointer" id="myOverlay"></div>
@@ -214,13 +214,6 @@ function imageZoom(imgID, resultID) {
   <div id="myresult" class="img-zoom-result w3-half"></div>
 </div>
 </div>
-
-    <!-- Slider Zoom -->
-
-    <form>
-        <label for="slider_zoom">Zoom</label>
-     <input type="range" class="slider" min="100" max="636" value="0" id="slider_zoom">
-    </form>
 
  
 

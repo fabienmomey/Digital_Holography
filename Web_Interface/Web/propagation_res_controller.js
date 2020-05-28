@@ -7,7 +7,8 @@ document.getElementById('result').setAttribute('src', 'output/propagation/' + fi
 
 let z_slider = document.getElementById('z_slider');
 var slider_zoom = document.getElementById('slider_zoom');
-var zoom_value = document.getElementById('zoomi')
+var img_zoom_lens = document.getElementById("#.img-zoom-lens");
+
 
 let nb = (endz-startz)/stepz;
 z_slider.setAttribute("max", nb.toString());
@@ -22,7 +23,3 @@ z_slider.oninput = function() {
 imageZoom("result", "myresult");
 };
 
-// Evènement : lorque le slider_zoom est bougé
-slider_zoom.oninput = function() {
-    zoom_value.innerHTML = "" + this.value + "px";
-};
