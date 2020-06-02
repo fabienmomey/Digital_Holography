@@ -83,12 +83,12 @@ int main(int argc, char* argv[])
     if (object == 0)
     {
         extremums[0] = atof(argv[10]);
-        extremums[0] = atof(argv[11]);
+        extremums[1] = atof(argv[11]);
     }
     else
     {
         extremums[0] = 0;
-        extremums[0] = 1;
+        extremums[1] = 1;
     }
 
     CalculMethod calcul_method;
@@ -116,13 +116,13 @@ int main(int argc, char* argv[])
     Mat hologram = imread(source_file, IMREAD_UNCHANGED);
     if (hologram.empty())
     {
-        output << "Cannot open or read the image" << endl;
+        output << "Can not open or read the image" << endl;
         return -1;
     }
 
 
     fs::create_directories(fs::path(pathname));
-    output << "Creating output directory : " << pathname << endl;
+    output << "Creating output directory: " << pathname << endl;
 
 
     Settings param;
