@@ -172,6 +172,7 @@ function imageZoom(imgID, resultID) {
         <a class="w3-bar-item w3-button" href="index.php">Home</a>
         <a class="w3-bar-item w3-button w3-black" href="propagation.php">Back-Propagation</a>
         <a class="w3-bar-item w3-button" href="fienup.php">Fienup</a>
+        <a class="w3-bar-item w3-button" href="history.php">History</a>
     </nav>
 
     <div class="w3-overlay w3-hide-large w3-animate-opacity" onclick="w3_close()" style="cursor:pointer" id="myOverlay"></div>

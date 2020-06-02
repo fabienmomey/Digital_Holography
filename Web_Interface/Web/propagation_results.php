@@ -31,6 +31,11 @@
         $lambda = htmlspecialchars($_POST["lambda_input"]);
         $pp = htmlspecialchars($_POST["pp_input"]);
         $zeropadvalue = htmlspecialchars($_POST["zeropad_radio"]);
+        $today = date("Y-m-d H:i:s");
+       
+        
+        
+        
 
         if(strcmp($zeropadvalue, "nopad") === 0) {
             $zeropad = "0";
@@ -53,13 +58,65 @@
         $validInput = $validInput and file_exists($filename);
 
         if($validInput) {
+
+            $methode = "Back Propagation";
+            $location = "Web/output/propagation/";
+            
+         
+
+            try
+            {
+	            // On se connecte à MySQL
+	            $bdd = new PDO('mysql:host=localhost;port=3308;dbname=labhc_algorithme;charset=utf8', 'root', '');
+            }
+            catch(Exception $e)
+            {
+	            // En cas d'erreur, on affiche un message et on arrête tout
+                die('Erreur : '.$e->getMessage());
+            }
+
+                // On test si la simulation a déja été faite avec les memes paramètres pour la même image
+
+            $req = $bdd->query("SELECT COUNT(*) FROM historique WHERE (Start_Input LIKE " . $startz . " AND End_Input LIKE " . $endz . " AND Step_Input LIKE " . $stepz . " AND Lamda_input LIKE " . $lambda . " AND Pp_input LIKE " . $pp . " AND Zeropad_Ratio LIKE " . $zeropad . " AND Méthode LIKE '" . $methode . "' AND Nom_Image LIKE '" . $filename . "')");
+            
+            $result = $req->fetch();
+            $count = $result[0];
+
+
+            if ($count != 0) {  // Si la simulation a déja été faite, on ouvre le résultat de cette simulation
+
+                // On récupère l'emplacement de la simulation déja faite
+                
+                $req2 = $bdd->query("SELECT Nom_Fichier FROM historique WHERE (Start_Input LIKE " . $startz . " AND End_Input LIKE " . $endz . " AND Step_Input LIKE " . $stepz . " AND Lamda_input LIKE " . $lambda . " AND Pp_input LIKE " . $pp . " AND Zeropad_Ratio LIKE " . $zeropad . " AND Méthode LIKE '" . $methode . "' AND Nom_Image LIKE '" . $filename . "')");
+
+                $result2 = $req2->fetch();
+                $donnee = $result2['Nom_Fichier'];
+                $chemin = "propagation_sharable.php?value=".$donnee;
+
+                // On vas a la page de résultat
+
+                header('Location: '.$chemin);
+            }
+            else {  // Si la simulation n'a pas été faite, on l'a fait
+
+
+                // On écris tout le contenu dans la table Historique
+            $req = $bdd->prepare('INSERT INTO historique(Nom_Fichier, Emplacement, Start_Input, End_Input, Step_Input, Lamda_input, Pp_input, Zeropad_Ratio, Méthode, Nom_Image, Date) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            $req->execute(array($destname, $location . $randomString, $startz, $endz, $stepz, $lambda, $pp, $zeropad, $methode, $filename, $today));
+
+
             //Commande qui excécute le programme avec les paramètres du formulaire
+
             exec(escapeshellcmd("\"./bin/Propagation\" uploads/" . $filename . " " . $destname . " " . $startz . " " . $endz . " " . $stepz . " " . $lambda . " " . $pp . " " . $zeropad));
+
             //Redirection vers l'affichage du résultat
+
             $newURL = "propagation_sharable.php?value=".$destname;
             sleep(0.1);
             header('Location: '.$newURL);
+
             exit();
+            }
         }
         else
             echo "Error : wrong arguments";
@@ -111,3 +168,5 @@
     }
 
 uploadFile();
+
+?>

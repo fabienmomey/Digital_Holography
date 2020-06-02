@@ -25,6 +25,7 @@ let lambdaDoc = document.getElementById('lambda_input');
 let ppDoc = document.getElementById('pp_input');
 
 
+
 // Lorsque l'on appuie sur une touche, on désélectionne les bouttons qui sélectionne le préset
 
 startDoc.onkeyup = function(){

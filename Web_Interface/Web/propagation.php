@@ -28,6 +28,7 @@ body {font-family: "Roboto", sans-serif; color: black;}
         <a class="w3-bar-item w3-button" href="index.php">Home</a>
         <a class="w3-bar-item w3-button w3-black" href="propagation.php">Back-Propagation</a>
         <a class="w3-bar-item w3-button" href="fienup.php">Fienup</a>
+        <a class="w3-bar-item w3-button" href="history.php">History</a>
     </nav>
 
     <div class="w3-overlay w3-hide-large w3-animate-opacity" onclick="w3_close()" style="cursor:pointer" id="myOverlay"></div>
@@ -74,7 +75,7 @@ body {font-family: "Roboto", sans-serif; color: black;}
                         <label for="fileToUpload">Select an image (jpg or png): </label>
                         <div class="custom-file">
                             <input type="file" class="custom-file-input" id="fileToUpload" name="fileToUpload" accept="image/*">
-                            <label class="custom-file-label" for="customFile" id="fileLabel">Select an image</label>
+                            <label type ="text" class="custom-file-label" for="customFile" id="fileLabel" name ="fileLabel">Select an image</label>
                         </div>
                     </div>
                     <input id="presetFile" name="presetFile" type="hidden">

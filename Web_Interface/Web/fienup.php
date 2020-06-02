@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1">
-    <title>Digital Holography Reconstruction - Backpropagation</title>
+    <title>Digital Holography Reconstruction - Fienup</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
     <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-black.css">
@@ -28,6 +28,7 @@ body {font-family: "Roboto", sans-serif; color: black;}
         <a class="w3-bar-item w3-button" href="index.php">Home</a>
         <a class="w3-bar-item w3-button" href="propagation.php">Back-Propagation</a>
         <a class="w3-bar-item w3-button w3-black" href="fienup.php">Fienup</a>
+        <a class="w3-bar-item w3-button" href="history.php">History</a>
     </nav>
 
     <div class="w3-overlay w3-hide-large w3-animate-opacity" onclick="w3_close()" style="cursor:pointer" id="myOverlay"></div>
