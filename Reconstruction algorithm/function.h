@@ -5,6 +5,8 @@
 using namespace std;
 using namespace cv;
 
+#define EXTREMUMS {-DBL_MAX, DBL_MAX} //The table with the 2 extremes for the complex image: the minimum and maximum of the constraint initialised by Infinite = DBL_MAX 
+
 enum CalculMethod //Calcul method for complexes
 {
     MODULE_CALCUL,  //For the module calcul
@@ -144,7 +146,9 @@ Allows to reconstruct an image from a hologram using the "Fienup" method
 @param hologram: The matrix containing the hologram to be reconstituted (not modifiable)
 @param reconstituted_image: The matrix containing the reconstituted image
 @param setting: The parameters to be used to reconstitute the hologram
-@param repetitions: The number of repetitions to be done in the algorithm
-@param do_padding: If equal to 1, we make padding by doubling the dimensions, otherwise we don't make padding
+@param object: The "type" of the object: 0 = phase object or 1 = absorbing object
+@param complex_extremum: The table containing the 4 extremes for the complex image: the minimum and maximum of the real part then of the imaginary part (Infinite = DBL_MAX)
+@param repetitions: The number of repetitions to be done in the algorithm (by default: 10)
+@param do_padding: If equal to 1, we make padding by doubling the dimensions, otherwise we don't make padding (by default: 1)
 */
-void fienup_reconstitution(const Mat& hologram, Mat& reconstituted_image, Settings& setting, int repetitions, int do_padding);
+void fienup_reconstitution(const Mat& hologram, Mat& reconstituted_image, Settings& setting, int object, double complex_extremum[], int repetitions = 10, int do_padding = 1);

@@ -272,8 +272,10 @@ void fresnel_propagation_kernel(const Settings& setting, Mat& Hz, Mat& H_z, bool
     }
 }
 
-void fienup_reconstitution(const Mat& hologram, Mat& reconstituted_image, Settings& setting, int repetitions, int do_padding)
+void fienup_reconstitution(const Mat& hologram, Mat& reconstituted_image, Settings& setting, int object, double complex_extremum[], int repetitions, int do_padding)
 {
+    double e1, e2, seconds;
+
     Mat temp;
     hologram.convertTo(temp, CV_64F);
     sqrt(temp, temp); //We do the square root of the hologram, because the recovered data are the square of the module
@@ -296,33 +298,54 @@ void fienup_reconstitution(const Mat& hologram, Mat& reconstituted_image, Settin
     setting.height = final_size[1];
 
     Mat Hz, H_z;
-    
+    e1 = getTickCount();
+
+    //fresnel_propagator(param, Hz, H_z); //Old function
     fresnel_propagation_kernel(setting, Hz, H_z); //We recover the 2 kernel according to the above parameters
+
+    e2 = getTickCount();
+    seconds = (e2 - e1) / getTickFrequency();
+    cout << "Fresnel : " << seconds << " seconds\n";
 
     Mat hologram_iteration; //The matrix that will be retrieved and modified at each iteration
     optimal_hologram.copyTo(hologram_iteration);
 
     Mat FT, FT_product, inverse_FT; //Fourier matrix
-    Mat mat_split[2], module1;
+    Mat mat_split[2], mat_end;
 
     for (int i = 0; i < repetitions; i++)
     {
+        e1 = getTickCount();
+
         //Backpropagation
         dft(hologram_iteration, FT, DFT_COMPLEX_OUTPUT);
         complex_multiply(FT, H_z, FT_product);
         idft(FT_product, inverse_FT, DFT_COMPLEX_OUTPUT);
 
-        //We recreate an image by changing the module to 1: module1 = inverse_FT / abs(inverse_FT) with positive real part and positive imaginary part
+        inverse_FT = inverse_FT / (final_size[0] * final_size[1]);
+
+        //We recreate an image by applying the constraint
         split(inverse_FT, mat_split);
-        max(0, mat_split[0], mat_split[0]); //We force the real positive part
-        max(0, mat_split[1], mat_split[1]); //We force the positive imaginary part
-        magnitude(mat_split[0], mat_split[1], temp); //Calcul of the module
-        divide(1, temp, temp);
-        merge(mat_split, 2, inverse_FT);
-        my_multiply(temp, inverse_FT, module1);
+        if (object == 0)
+        {
+            //If we have phase object, we set the real part to 1 and apply the constraint on imaginary part
+            mat_split[0] = max(mat_split[0], 1); //Set the real part to 1
+            mat_split[0] = min(mat_split[0], 1); //Set the real part to 1
+            mat_split[1] = max(mat_split[1], complex_extremum[0]); //The imaginary part is compared with the lower limit of the interval (min)
+            mat_split[1] = min(mat_split[1], complex_extremum[1]); //The imaginary part is compared with the upper limit of the interval (max)
+        }
+        else
+        {
+            //If we have phase object, we set the imaginary part to 0 and apply the constraint on real part
+            mat_split[0] = max(mat_split[0], complex_extremum[0]); //The real part is compared with the lower limit of the interval (min)
+            mat_split[0] = min(mat_split[0], complex_extremum[1]); //The real part is compared with the upper limit of the interval (max)
+            mat_split[1] = max(mat_split[1], 0); //Set the imaginary part to 0
+            mat_split[1] = min(mat_split[1], 0); //Set the imaginary part to 0
+        }
+        merge(mat_split, 2, mat_end);
 
         //Propagation
-        dft(module1, FT, DFT_COMPLEX_OUTPUT);
+        dft(mat_end, FT, DFT_COMPLEX_OUTPUT);
         complex_multiply(FT, Hz, FT_product);
         idft(FT_product, inverse_FT, DFT_COMPLEX_OUTPUT);
 
@@ -331,10 +354,14 @@ void fienup_reconstitution(const Mat& hologram, Mat& reconstituted_image, Settin
         magnitude(mat_split[0], mat_split[1], temp); //Calcul of the module
         divide(optimal_hologram, temp, temp);
         my_multiply(temp, inverse_FT, hologram_iteration);
+
+        e2 = getTickCount();
+        seconds = (e2 - e1) / getTickFrequency();
+        cout << "Iteration " << i << " : " << seconds << " seconds\n";
     }
 
     //We reduce the reconstructed image to keep only the central part that corresponds to the result
     int row_margin = floor(1.0 * (final_size[0] - initial_size[0]) / 2), col_margin = floor(1.0 * (final_size[1] - initial_size[1]) / 2);
-    Mat(module1, Rect(row_margin, col_margin, initial_size[0], initial_size[1])).copyTo(reconstituted_image);
+    Mat(mat_end, Rect(row_margin, col_margin, initial_size[0], initial_size[1])).copyTo(reconstituted_image);
 }
 
