@@ -9,7 +9,7 @@ using namespace cv;
 
 enum CalculMethod //Calcul method for complexes
 {
-    MODULE_CALCUL,  //For the module calcul
+    MODULE_CALCUL,  //For the module calcul 
     PHASE_CALCUL    //For the phase calcul
 };
 
@@ -142,13 +142,43 @@ Allows to create a propagation and backpropagation kernel according to different
 void fresnel_propagation_kernel(const Settings& setting, Mat& Hz, Mat& H_z, bool flag_phaseref = false, HOLOGRAM_TYPE hologram_type = COMPLEX, bool flag_linearize = false, OBJ_TYPE object_type = DEPHASING);
 
 /*
+Prepare the hologram image by doing padding to have a good size
+@param initial_hologram: The matrix containing the initial hologram data (not modifiable)
+@param optimal_hologram: The matrix containing the hologram with the good size to be reconstitued
+@param do_padding: If equal to 1, we make padding by doubling the dimensions, otherwise we don't make padding
+@param do_sqrt: If equal to 1, we make the square root on the hologram data, otherwise we don't make the square root
+*/
+void reconstitution_preparation(const Mat& initial_hologram, Mat& optimal_hologram, int do_padding, int do_sqrt);
+
+/*
 Allows to reconstruct an image from a hologram using the "Fienup" method
-@param hologram: The matrix containing the hologram to be reconstituted (not modifiable)
-@param reconstituted_image: The matrix containing the reconstituted image
+@param hologram: The matrix containing the hologram to be reconstituted with the good size (not modifiable)
+@param reconstituted_image: The matrix containing the reconstituted image, but this image is not resize !
 @param setting: The parameters to be used to reconstitute the hologram
 @param object: The "type" of the object: 0 = phase object or 1 = absorbing object
 @param complex_extremum: The table containing the 4 extremes for the complex image: the minimum and maximum of the real part then of the imaginary part (Infinite = DBL_MAX)
-@param repetitions: The number of repetitions to be done in the algorithm (by default: 10)
-@param do_padding: If equal to 1, we make padding by doubling the dimensions, otherwise we don't make padding (by default: 1)
+@param repetitions: The number of repetitions to be done in the algorithm
 */
-void fienup_reconstitution(const Mat& hologram, Mat& reconstituted_image, Settings& setting, int object, double complex_extremum[], int repetitions = 10, int do_padding = 1);
+void fienup_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, double complex_extremum[], int repetitions);
+
+/*
+Allows to reconstruct an image from a hologram using the "ISTA" method
+@param hologram: The matrix containing the hologram to be reconstituted with the good size (not modifiable)
+@param reconstituted_image: The matrix containing the reconstituted image, but this image is not resize !
+@param setting: The parameters to be used to reconstitute the hologram
+@param object: The "type" of the object: 0 = phase object or 1 = absorbing object
+@param flag_pos: The flag to apply or not a positivity constraint : 1 = positivity constriant, 0 = not
+@param repetitions: The number of repetitions to be done in the algorithm
+*/
+void ISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, int flag_pos, int repetitions);
+
+/*
+Allows to reconstruct an image from a hologram using the "FISTA" method
+@param hologram: The matrix containing the hologram to be reconstituted with the good size (not modifiable)
+@param reconstituted_image: The matrix containing the reconstituted image, but this image is not resize !
+@param setting: The parameters to be used to reconstitute the hologram
+@param object: The "type" of the object: 0 = phase object or 1 = absorbing object
+@param flag_pos: The flag to apply or not a positivity constraint : 1 = positivity constriant, 0 = not
+@param repetitions: The number of repetitions to be done in the algorithm
+*/
+void FISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, int flag_pos, int repetitions);

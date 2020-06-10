@@ -12,7 +12,7 @@ void my_multiply(const Mat& simple_mat, const Mat& complex_mat, Mat& res_mat)
 {
     Mat mat_split[2];
     split(complex_mat, mat_split); //We separate the real from the imaginary 
-    //M * (A+iB) = MA + iMB
+    //M * (A+iB) = MA + iMB 
     multiply(simple_mat, mat_split[0], mat_split[0]);
     multiply(simple_mat, mat_split[1], mat_split[1]);
     merge(mat_split, 2, res_mat);
@@ -197,8 +197,8 @@ void fresnel_propagation_kernel(const Settings& setting, Mat& Hz, Mat& H_z, bool
             split(Hz, mat_split);
             if (kernel_type == GZ_DEPHASING)
             {
-                mat_split[0] = 0;
-                mat_split[1] = -2 * mat_split[1];
+                mat_split[0] = -2 * mat_split[1];
+                mat_split[1] = 0;
             }
             if (kernel_type == GZ_ABSORBING)
             {
@@ -253,8 +253,8 @@ void fresnel_propagation_kernel(const Settings& setting, Mat& Hz, Mat& H_z, bool
             split(Hz, mat_split);
             if (kernel_type == GZ_DEPHASING)
             {
-                mat_split[0] = 0;
-                mat_split[1] = -2 * mat_split[1];
+                mat_split[0] = -2 * mat_split[1];
+                mat_split[1] = 0;
             }
             if (kernel_type == GZ_ABSORBING)
             {
@@ -272,35 +272,30 @@ void fresnel_propagation_kernel(const Settings& setting, Mat& Hz, Mat& H_z, bool
     }
 }
 
-void fienup_reconstitution(const Mat& hologram, Mat& reconstituted_image, Settings& setting, int object, double complex_extremum[], int repetitions, int do_padding)
+void reconstitution_preparation(const Mat& initial_hologram, Mat& optimal_hologram, int do_padding, int do_sqrt)
+{
+    initial_hologram.convertTo(optimal_hologram, CV_64F);
+    if (do_sqrt == 1) sqrt(optimal_hologram, optimal_hologram); //We do the square root of the hologram, because the recovered data are the square of the module
+
+    int initial_size[] = { initial_hologram.rows, initial_hologram.cols };
+
+    Scalar mean_value = mean(optimal_hologram); //We calculate the average of the image
+    optimal_hologram = optimal_hologram / mean_value; //We normalize the image by dividing it by its average
+    int pad = 1; //We put a border of 1 because we normalized by dividing by the mean
+
+    if (do_padding == 1) padding(optimal_hologram, initial_size[0] * 2, initial_size[1] * 2, pad, optimal_hologram); //Double the size of the image to avoid aliasing
+    optimal_FT(optimal_hologram, pad, optimal_hologram);
+}
+
+void fienup_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, double complex_extremum[], int repetitions)
 {
     double e1, e2, seconds;
 
-    Mat temp;
-    hologram.convertTo(temp, CV_64F);
-    sqrt(temp, temp); //We do the square root of the hologram, because the recovered data are the square of the module
-
-    int initial_size[] = { hologram.rows, hologram.cols };
-
-    Scalar mean_value = mean(temp); //We calculate the average of the image
-    temp /= mean_value; //We normalize the image by dividing it by its average
-    int pad = 1; //We put a border of 1 because we normalized by dividing by the mean
-
-    Mat optimal_hologram;
-    temp.copyTo(optimal_hologram);
-    if (do_padding == 1) padding(optimal_hologram, initial_size[0] * 2, initial_size[1] * 2, pad, optimal_hologram); //Double the size of the image to avoid aliasing
-    optimal_FT(optimal_hologram, pad, optimal_hologram);
-
     int final_size[] = { optimal_hologram.rows, optimal_hologram.cols };
-
-    //We change the size parameters
-    setting.width = final_size[0];
-    setting.height = final_size[1];
 
     Mat Hz, H_z;
     e1 = getTickCount();
 
-    //fresnel_propagator(param, Hz, H_z); //Old function
     fresnel_propagation_kernel(setting, Hz, H_z); //We recover the 2 kernel according to the above parameters
 
     e2 = getTickCount();
@@ -311,7 +306,7 @@ void fienup_reconstitution(const Mat& hologram, Mat& reconstituted_image, Settin
     optimal_hologram.copyTo(hologram_iteration);
 
     Mat FT, FT_product, inverse_FT; //Fourier matrix
-    Mat mat_split[2], mat_end;
+    Mat mat_split[2], mat_end, temp;
 
     for (int i = 0; i < repetitions; i++)
     {
@@ -336,7 +331,7 @@ void fienup_reconstitution(const Mat& hologram, Mat& reconstituted_image, Settin
         }
         else
         {
-            //If we have phase object, we set the imaginary part to 0 and apply the constraint on real part
+            //If we have absorbing object, we set the imaginary part to 0 and apply the constraint on real part
             mat_split[0] = max(mat_split[0], complex_extremum[0]); //The real part is compared with the lower limit of the interval (min)
             mat_split[0] = min(mat_split[0], complex_extremum[1]); //The real part is compared with the upper limit of the interval (max)
             mat_split[1] = max(mat_split[1], 0); //Set the imaginary part to 0
@@ -359,9 +354,166 @@ void fienup_reconstitution(const Mat& hologram, Mat& reconstituted_image, Settin
         seconds = (e2 - e1) / getTickFrequency();
         cout << "Iteration " << i << " : " << seconds << " seconds\n";
     }
-
-    //We reduce the reconstructed image to keep only the central part that corresponds to the result
-    int row_margin = floor(1.0 * (final_size[0] - initial_size[0]) / 2), col_margin = floor(1.0 * (final_size[1] - initial_size[1]) / 2);
-    Mat(mat_end, Rect(row_margin, col_margin, initial_size[0], initial_size[1])).copyTo(reconstituted_image);
+    mat_end.copyTo(reconstituted_image);
 }
 
+void ISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, int flag_pos, int repetitions)
+{
+    int final_size[] = { optimal_hologram.rows, optimal_hologram.cols };
+
+    OBJ_TYPE type_object; //Select the good object type
+    if (object == 0) type_object = DEPHASING;
+    else type_object = ABSORBING;
+
+    Mat Hz, H_z;
+    fresnel_propagation_kernel(setting, Hz, H_z, true, INTENSITY, true, type_object); //We recover the 2 kernel according to the above parameters
+
+    Mat mat_split[2], Gz, temp;
+    split(Hz, mat_split);
+    mat_split[0].copyTo(Gz); //To have a real kernel with just the real part because imaginary part is set to 0 in this method
+    //With the ISTA method, the propagation and back propagation kernel are the same kernel
+
+    Mat hologram_iteration(optimal_hologram.size(), CV_64F, Scalar(0));
+
+    double max_value;
+    multiply(Gz, Gz, temp);
+    minMaxIdx(temp, NULL, &max_value); //Take the max of Gz²
+
+    long double c; //Intensity factor
+    double t = 1 / (2 * max_value);
+    double mu = 1;
+
+    Mat FT, FT_product, inverse_FT;
+    Mat m_tild; //Matrix with the direct model
+    Mat r; //Matrix with the residues : the difference between the model and the data
+
+    for (int i = 0; i < repetitions; i++)
+    {
+        cout << i << endl;
+
+        //Calcul of the direct model with propagation
+        dft(hologram_iteration, FT, DFT_COMPLEX_OUTPUT);
+        my_multiply(Gz, FT, FT_product);
+        idft(FT_product, inverse_FT, DFT_REAL_OUTPUT);
+
+        inverse_FT = inverse_FT / (final_size[0] * final_size[1]);
+
+        m_tild = 1 + inverse_FT;
+
+
+        // Calcul of the optimal c
+        multiply(m_tild, optimal_hologram, temp);
+        c = sum(temp)[0];
+        multiply(m_tild, m_tild, temp);
+        c = c * 1.0 / sum(temp)[0];
+
+
+        r = c * m_tild - optimal_hologram; //Calcul of the residues
+
+        //Back propagation of the residues
+        dft(r, FT, DFT_COMPLEX_OUTPUT);
+        my_multiply(Gz, FT, FT_product);
+        idft(FT_product, inverse_FT, DFT_REAL_OUTPUT);
+
+        r = inverse_FT / (final_size[0] * final_size[1]);
+
+
+        hologram_iteration = hologram_iteration - 2 * t * c * r; //Soft-thresholding
+
+
+        //Apply the constraint
+        if (flag_pos == 1) hologram_iteration = max(0.0, hologram_iteration - mu * t);
+        else
+        {
+            Mat absolute = abs(hologram_iteration);
+            divide(hologram_iteration, absolute, temp);
+            multiply(temp, max(0.0, absolute - mu * t), hologram_iteration);
+        }
+    }
+    hologram_iteration.copyTo(reconstituted_image);
+}
+
+void FISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, int flag_pos, int repetitions)
+{
+    int final_size[] = { optimal_hologram.rows, optimal_hologram.cols };
+
+    OBJ_TYPE type_object; //Select the good object type
+    if (object == 0) type_object = DEPHASING;
+    else type_object = ABSORBING;
+
+    Mat Hz, H_z;
+    fresnel_propagation_kernel(setting, Hz, H_z, true, INTENSITY, true, type_object); //We recover the 2 kernel according to the above parameters
+
+    Mat mat_split[2], Gz, temp;
+    split(Hz, mat_split);
+    mat_split[0].copyTo(Gz);//To have a real kernel with just the real part because imaginary part is set to 0 in this method
+    //With the FISTA method, the propagation and back propagation kernel are the same kernel
+
+    Mat hologram_iteration_prev(optimal_hologram.size(), CV_64F, Scalar(0)), hologram_iteration;
+    Mat u; //Intermediate matrix
+    hologram_iteration_prev.copyTo(u);
+    double s_prev = 1, s;
+
+    double max_value;
+    multiply(Gz, Gz, temp);
+    minMaxIdx(temp, NULL, &max_value); //Take the max of Gz²
+
+    long double c; //Intensity factor
+    double t = 1 / (2 * max_value);
+    double mu = 1;
+
+    Mat FT, FT_product, inverse_FT;
+    Mat m_tild; //Matrix with the direct model
+    Mat r; //Matrix with the residues : the difference between the model and the data
+
+    for (int i = 0; i < repetitions; i++)
+    {
+        cout << i << endl;
+
+        //Calcul of the direct model with propagation
+        dft(u, FT, DFT_COMPLEX_OUTPUT);
+        my_multiply(Gz, FT, FT_product);
+        idft(FT_product, inverse_FT, DFT_REAL_OUTPUT);
+
+        inverse_FT = inverse_FT / (final_size[0] * final_size[1]);
+
+        m_tild = 1 + inverse_FT;
+
+
+        // Calcul of the optimal c
+        multiply(m_tild, optimal_hologram, temp);
+        c = sum(temp)[0];
+        multiply(m_tild, m_tild, temp);
+        c = c * 1.0 / sum(temp)[0];
+
+
+        r = c * m_tild - optimal_hologram; //Calcul of the residues
+
+        //Back propagation of the residues
+        dft(r, FT, DFT_COMPLEX_OUTPUT);
+        my_multiply(Gz, FT, FT_product);
+        idft(FT_product, inverse_FT, DFT_REAL_OUTPUT);
+
+        r = inverse_FT / (final_size[0] * final_size[1]);
+
+
+        hologram_iteration = u - 2 * t * c * r; //Soft-thresholding
+
+        //Apply the constraint
+        if (flag_pos == 1) hologram_iteration = max(0.0, hologram_iteration - mu * t);
+        else
+        {
+            Mat absolute = abs(hologram_iteration);
+            divide(hologram_iteration, absolute, temp);
+            multiply(temp, max(0.0, absolute - mu * t), hologram_iteration);
+        }
+
+        //Calcul of the new value and matrix for the next iteration
+        s = 0.5 * (1 + sqrt(1 + 4 * s_prev * s_prev));
+        u = hologram_iteration + (s_prev - 1) / s * (hologram_iteration - hologram_iteration_prev);
+
+        s_prev = s;
+        hologram_iteration.copyTo(hologram_iteration_prev);
+    }
+    hologram_iteration.copyTo(reconstituted_image);
+}
