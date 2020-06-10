@@ -16,14 +16,14 @@ namespace fs = std::experimental::filesystem;
     The different arguments to put in input to execute this program :
 
     argv[0]: The name of the executable 
-    argv[1]: The path to the source image
+    argv[1]: The path to the source image 
     argv[2]: The path to the destination folder
     argv[3]: The beginning of the interval of z
     argv[4]: The end of the interval of z
     argv[5]: The step between each value of z
     argv[6]: The wavelength used
     argv[7]: The pixel size
-    argv[8]: If you want to do padding on the image or not: 1 = padding
+    argv[8]: If you want to do padding on the image or not: 1 = padding, 0 = not
     argv[9]: The "type" of the object: 0 = phase object or 1 = absorbing object
     argv[10]: The minimum value of the constraint (if type_object = phase_object else 0)
     argv[11]: The maximum value of the constraint (if type_object = phase_object else 1)
@@ -43,6 +43,8 @@ int main(int argc, char* argv[])
     double start_z, end_z, step_z, lambda, pixel;
     int do_padding, object;
     
+    double extremums[2] = EXTREMUMS;
+
     //If all parameters are filled in
     if (argc >= 10)
     {
@@ -56,6 +58,18 @@ int main(int argc, char* argv[])
         do_padding = atoi(argv[8]);
         object = atoi(argv[9]);
 
+        //We modify the minimum and maximum value of the constraint
+        if (object == 0)
+        {
+            extremums[0] = atof(argv[10]);
+            extremums[1] = atof(argv[11]);
+        }
+        else
+        {
+            extremums[0] = 0;
+            extremums[1] = 1;
+        }
+
         string logpath = "output/log/fienup_" + dest_files + ".txt"; //The path to the log file
         output.open(logpath, ios::out); //Open the log file to write the state of the program
         output << "---------- Start - Fienup reconstitution ---------- " << endl;
@@ -64,31 +78,23 @@ int main(int argc, char* argv[])
     //Else : load default parameters
     else
     {
-        source_file = "uploads/Reticle_LaHC.png"; //2019_06_07_billes1mu_63_JOSAA/Basler_daA1920-30um_(22030948)_20190607_122251706_0012_crop.tiff
-        dest_files = "test"; //output/propagation/
+        source_file = "2019_06_07_billes1mu_63_JOSAA/Basler_daA1920-30um_(22030948)_20190607_122251706_0012_crop.tiff"; 
+                                                //2019_06_07_billes1mu_63_JOSAA/Basler_daA1920-30um_(22030948)_20190607_122251706_0012_crop.tiff
+                                                //uploads/Reticle_LaHC.png
+        dest_files = "test"; 
         start_z = 5e-6;
         end_z = 10e-6;
         step_z = 0.5e-6;
         lambda = 532e-9;
         pixel = 3.88e-8;
         do_padding = 1;
-        object = 1;
+        object = 0;
+
+        extremums[0] = 0;
+        extremums[1] = CV_PI / 2;
 
         test = true;
         output.basic_ios<char>::rdbuf(cout.rdbuf());
-    }
-    
-    double extremums[2] = EXTREMUMS;
-    //We modify the minimum and maximum value of the constraint
-    if (object == 0)
-    {
-        extremums[0] = atof(argv[10]);
-        extremums[1] = atof(argv[11]);
-    }
-    else
-    {
-        extremums[0] = 0;
-        extremums[1] = 1;
     }
 
     CalculMethod calcul_method;
@@ -135,9 +141,21 @@ int main(int argc, char* argv[])
     
 
     int repetitions = 5;
-    Mat reconstitued_image;
+    Mat reconstituted_image;
     string dest_name;
-    
+
+    int do_sqrt = 1;
+
+    Mat optimal_hologram;
+    reconstitution_preparation(hologram, optimal_hologram, do_padding, do_sqrt);
+
+    int initial_size[] = { hologram.rows, hologram.cols };
+    int final_size[] = { optimal_hologram.rows, optimal_hologram.cols };
+
+    //We change the size parameters
+    param.width = final_size[0];
+    param.height = final_size[1];
+
     int i = 0;
 
     //We reconstitute the hologram for each z value between start_z and end_z with a step_z between each value
@@ -145,14 +163,18 @@ int main(int argc, char* argv[])
     for (double z = start_z; z <= end_z; z+=step_z) 
     {
         param.z = z;
-        fienup_reconstitution(hologram, reconstitued_image, param, object, extremums, repetitions, do_padding); //Hologram reconstitution
-        complex_display(reconstitued_image, reconstitued_image, calcul_method); //Converting the final complex image into a displayable image by calculating its phase or module
+        fienup_reconstitution(optimal_hologram, reconstituted_image, param, object, extremums, repetitions); //Hologram reconstitution
 
-        normalize(reconstitued_image, reconstitued_image, 0, 65535, NORM_MINMAX); //Normalizing the image so that it can be registered under an extension on 16 bits
-        reconstitued_image.convertTo(reconstitued_image, CV_16U);
+        int row_margin = floor(1.0 * (final_size[0] - initial_size[0]) / 2), col_margin = floor(1.0 * (final_size[1] - initial_size[1]) / 2);
+        Mat(reconstituted_image, Rect(row_margin, col_margin, initial_size[0], initial_size[1])).copyTo(reconstituted_image);
+
+        complex_display(reconstituted_image, reconstituted_image, calcul_method); //Converting the final complex image into a displayable image by calculating its phase or module
+
+        normalize(reconstituted_image, reconstituted_image, 0, 65535, NORM_MINMAX); //Normalizing the image so that it can be registered under an extension on 16 bits
+        reconstituted_image.convertTo(reconstituted_image, CV_16U);
 
         dest_name = pathname + "Res" + to_string(i) + ".png";
-        imwrite(dest_name, reconstitued_image); //Save the final_image
+        imwrite(dest_name, reconstituted_image); //Save the final_image
         i++;
         output << dest_name << " saved" << endl;
     }
