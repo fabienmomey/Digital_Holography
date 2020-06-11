@@ -25,7 +25,8 @@ namespace fs = std::experimental::filesystem;
     argv[7]: The pixel size
     argv[8]: If you want to do padding on the image or not: 1 = padding, 0 = not
     argv[9]: The "type" of the object: 0 = phase object or 1 = absorbing object 
-    argv[10]: The flag to apply or not a positivity constraint : 1 = positivity constriant, 0 = not
+    argv[10]: The minimum value of the constraint 
+    argv[11]: The maximum value of the constraint 
 */
 
 int main(int argc, char* argv[])
@@ -40,7 +41,9 @@ int main(int argc, char* argv[])
 
     string source_file, dest_files;
     double start_z, end_z, step_z, lambda, pixel;
-    int do_padding, object, constraint;
+    int do_padding, object;
+
+    double extremums[2] = EXTREMUMS;
 
     //If all parameters are filled in
     if (argc >= 10)
@@ -54,7 +57,27 @@ int main(int argc, char* argv[])
         pixel = atof(argv[7]);
         do_padding = atoi(argv[8]);
         object = atoi(argv[9]);
-        constraint = atoi(argv[10]);
+        
+
+        if (object == 1) //If we have an absorbing object, the minimum is -1 and max is between -1 and 0
+        {
+            extremums[0] = -1;
+            if (atof(argv[11]) > 0 || atof(argv[11]) <= -1) extremums[1] = 0;
+            else extremums[1] = atof(argv[11]);
+        }
+        else //If we have a phase object
+        {   
+            if (atof(argv[10]) > atof(argv[11])) //If the minimum is strictly higher than the maximum, the 2 limits are inverted
+            {
+                extremums[0] = atof(argv[11]);
+                extremums[1] = atof(argv[10]);
+            }
+            else if (atof(argv[10]) != 0 && atof(argv[11]) != 0) //If the minimum and maximum are equal to 0, the limits are left at infinity
+            {
+                extremums[0] = atof(argv[10]);
+                extremums[1] = atof(argv[11]);
+            }
+        }
 
 
         string logpath = "output/log/FISTA_" + dest_files + ".txt"; //The path to the log file
@@ -76,7 +99,7 @@ int main(int argc, char* argv[])
         pixel = 3.88e-8;
         do_padding = 1;
         object = 0;
-        constraint = 1;
+
 
         test = true;
         output.basic_ios<char>::rdbuf(cout.rdbuf());
@@ -94,7 +117,8 @@ int main(int argc, char* argv[])
     output << "Pixel size: " << pixel << endl;
     output << "Zero padding: " << do_padding << endl;
     output << "Object type: " << object << endl;
-    output << "Positivity constraint: " << constraint << endl;
+    output << "Min value constraint: " << extremums[0] << endl;
+    output << "Max value constraint: " << extremums[1] << endl;
     output << "------------------------------------" << endl;
 
 
@@ -143,7 +167,7 @@ int main(int argc, char* argv[])
     for (double z = start_z; z <= end_z; z += step_z)
     {
         param.z = z;
-        FISTA_reconstitution(optimal_hologram, reconstituted_image, param, object, constraint, repetitions); //Hologram reconstitution
+        FISTA_reconstitution(optimal_hologram, reconstituted_image, param, object, extremums, repetitions); //Hologram reconstitution
 
         int row_margin = floor(1.0 * (final_size[0] - initial_size[0]) / 2), col_margin = floor(1.0 * (final_size[1] - initial_size[1]) / 2);
         Mat(reconstituted_image, Rect(row_margin, col_margin, initial_size[0], initial_size[1])).copyTo(reconstituted_image);
@@ -168,7 +192,8 @@ int main(int argc, char* argv[])
     params << "Pixel size: " << pixel << " m <br>" << endl;
     params << "Padding: <span id='padding'>" << do_padding << "</span><br>" << endl;
     params << "Object type: <span id='type'>" << object << "</span><br>" << endl;
-    params << "Positivity constraint: <span id='constraint'>" << constraint << "</span><br></p>" << endl;
+    params << "Min value constraint: <span id='min'>" << extremums[0] << "</span><br>" << endl;
+    params << "Max value constraint: <span id='max'>" << extremums[1] << "</span><br></p>" << endl;
 
     params.close();
 

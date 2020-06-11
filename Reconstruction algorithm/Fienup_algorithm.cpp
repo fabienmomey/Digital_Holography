@@ -25,8 +25,8 @@ namespace fs = std::experimental::filesystem;
     argv[7]: The pixel size
     argv[8]: If you want to do padding on the image or not: 1 = padding, 0 = not
     argv[9]: The "type" of the object: 0 = phase object or 1 = absorbing object
-    argv[10]: The minimum value of the constraint (if type_object = phase_object else 0)
-    argv[11]: The maximum value of the constraint (if type_object = phase_object else 1)
+    argv[10]: The minimum value of the constraint 
+    argv[11]: The maximum value of the constraint 
 */
 
 int main(int argc, char* argv[])
@@ -58,18 +58,17 @@ int main(int argc, char* argv[])
         do_padding = atoi(argv[8]);
         object = atoi(argv[9]);
 
-        //We modify the minimum and maximum value of the constraint
-        if (object == 0)
+        if (atof(argv[10]) > atof(argv[11])) //If the minimum is strictly higher than the maximum, the 2 limits are inverted
+        {
+            extremums[0] = atof(argv[11]);
+            extremums[1] = atof(argv[10]);
+        }
+        else
         {
             extremums[0] = atof(argv[10]);
             extremums[1] = atof(argv[11]);
         }
-        else
-        {
-            extremums[0] = 0;
-            extremums[1] = 1;
-        }
-
+        
         string logpath = "output/log/fienup_" + dest_files + ".txt"; //The path to the log file
         output.open(logpath, ios::out); //Open the log file to write the state of the program
         output << "---------- Start - Fienup reconstitution ---------- " << endl;

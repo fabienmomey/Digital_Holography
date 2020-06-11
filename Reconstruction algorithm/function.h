@@ -167,10 +167,10 @@ Allows to reconstruct an image from a hologram using the "ISTA" method
 @param reconstituted_image: The matrix containing the reconstituted image, but this image is not resize !
 @param setting: The parameters to be used to reconstitute the hologram
 @param object: The "type" of the object: 0 = phase object or 1 = absorbing object
-@param flag_pos: The flag to apply or not a positivity constraint : 1 = positivity constriant, 0 = not
+@param extremum: The table containing the 2 extremes for the image (Infinite = DBL_MAX)
 @param repetitions: The number of repetitions to be done in the algorithm
 */
-void ISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, int flag_pos, int repetitions);
+void ISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, double extremum[], int repetitions);
 
 /*
 Allows to reconstruct an image from a hologram using the "FISTA" method
@@ -178,7 +178,7 @@ Allows to reconstruct an image from a hologram using the "FISTA" method
 @param reconstituted_image: The matrix containing the reconstituted image, but this image is not resize !
 @param setting: The parameters to be used to reconstitute the hologram
 @param object: The "type" of the object: 0 = phase object or 1 = absorbing object
-@param flag_pos: The flag to apply or not a positivity constraint : 1 = positivity constriant, 0 = not
+@param extremum: The table containing the 2 extremes for the image (Infinite = DBL_MAX)
 @param repetitions: The number of repetitions to be done in the algorithm
 */
-void FISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, int flag_pos, int repetitions);
+void FISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, double extremum[], int repetitions);

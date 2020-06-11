@@ -357,7 +357,7 @@ void fienup_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image
     mat_end.copyTo(reconstituted_image);
 }
 
-void ISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, int flag_pos, int repetitions)
+void ISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, double extremum[], int repetitions)
 {
     int final_size[] = { optimal_hologram.rows, optimal_hologram.cols };
 
@@ -422,18 +422,13 @@ void ISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, 
 
 
         //Apply the constraint
-        if (flag_pos == 1) hologram_iteration = max(0.0, hologram_iteration - mu * t);
-        else
-        {
-            Mat absolute = abs(hologram_iteration);
-            divide(hologram_iteration, absolute, temp);
-            multiply(temp, max(0.0, absolute - mu * t), hologram_iteration);
-        }
+        hologram_iteration = max(hologram_iteration, extremum[0]); //min
+        hologram_iteration = min(hologram_iteration, extremum[1]); //max
     }
     hologram_iteration.copyTo(reconstituted_image);
 }
 
-void FISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, int flag_pos, int repetitions)
+void FISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, double extremum[], int repetitions)
 {
     int final_size[] = { optimal_hologram.rows, optimal_hologram.cols };
 
@@ -500,13 +495,8 @@ void FISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image,
         hologram_iteration = u - 2 * t * c * r; //Soft-thresholding
 
         //Apply the constraint
-        if (flag_pos == 1) hologram_iteration = max(0.0, hologram_iteration - mu * t);
-        else
-        {
-            Mat absolute = abs(hologram_iteration);
-            divide(hologram_iteration, absolute, temp);
-            multiply(temp, max(0.0, absolute - mu * t), hologram_iteration);
-        }
+        hologram_iteration = max(hologram_iteration, extremum[0]); //min
+        hologram_iteration = min(hologram_iteration, extremum[1]); //max
 
         //Calcul of the new value and matrix for the next iteration
         s = 0.5 * (1 + sqrt(1 + 4 * s_prev * s_prev));
