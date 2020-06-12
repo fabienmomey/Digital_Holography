@@ -15,8 +15,8 @@ namespace fs = std::experimental::filesystem;
 /*
     The different arguments to put in input to execute this program :
 
-    argv[0]: The name of the executable 
-    argv[1]: The path to the source image 
+    argv[0]: The name of the executable
+    argv[1]: The path to the source image
     argv[2]: The path to the destination folder
     argv[3]: The beginning of the interval of z
     argv[4]: The end of the interval of z
@@ -24,25 +24,25 @@ namespace fs = std::experimental::filesystem;
     argv[6]: The wavelength used
     argv[7]: The pixel size
     argv[8]: If you want to do padding on the image or not: 1 = padding, 0 = not
-    argv[9]: The "type" of the object: 0 = phase object or 1 = absorbing object
+    argv[9]: The "type" of the object: 0 = phase object or 1 = absorbing object 
     argv[10]: The minimum value of the constraint 
     argv[11]: The maximum value of the constraint 
 */
 
 int main(int argc, char* argv[])
 {
-    
-    //Hologram reconstruction with the "Fienup" method -------------------------------------------------------------------------------------------------------------------------------------------
+
+    //Hologram reconstruction with the "FISTA" method -------------------------------------------------------------------------------------------------------------------------------------------
 
     double e1 = getTickCount();
-    
+
     bool test = false;
     fstream output, params;
 
     string source_file, dest_files;
     double start_z, end_z, step_z, lambda, pixel;
     int do_padding, object;
-    
+
     double extremums[2] = EXTREMUMS;
 
     //If all parameters are filled in
@@ -57,30 +57,41 @@ int main(int argc, char* argv[])
         pixel = atof(argv[7]);
         do_padding = atoi(argv[8]);
         object = atoi(argv[9]);
-
-        if (atof(argv[10]) > atof(argv[11])) //If the minimum is strictly higher than the maximum, the 2 limits are inverted
-        {
-            extremums[0] = atof(argv[11]);
-            extremums[1] = atof(argv[10]);
-        }
-        else
-        {
-            extremums[0] = atof(argv[10]);
-            extremums[1] = atof(argv[11]);
-        }
         
-        string logpath = "output/log/fienup_" + dest_files + ".txt"; //The path to the log file
+
+        if (object == 1) //If we have an absorbing object, the minimum is -1 and max is between -1 and 0
+        {
+            extremums[0] = -1;
+            if (atof(argv[11]) > 0 || atof(argv[11]) <= -1) extremums[1] = 0;
+            else extremums[1] = atof(argv[11]);
+        }
+        else //If we have a phase object
+        {   
+            if (atof(argv[10]) > atof(argv[11])) //If the minimum is strictly higher than the maximum, the 2 limits are inverted
+            {
+                extremums[0] = atof(argv[11]);
+                extremums[1] = atof(argv[10]);
+            }
+            else if (atof(argv[10]) != 0 && atof(argv[11]) != 0) //If the minimum and maximum are equal to 0, the limits are left at infinity
+            {
+                extremums[0] = atof(argv[10]);
+                extremums[1] = atof(argv[11]);
+            }
+        }
+
+
+        string logpath = "output/log/FISTA_" + dest_files + ".txt"; //The path to the log file
         output.open(logpath, ios::out); //Open the log file to write the state of the program
-        output << "---------- Start - Fienup reconstitution ---------- " << endl;
+        output << "---------- Start - FISTA reconstitution ---------- " << endl;
 
     }
     //Else : load default parameters
     else
     {
-        source_file = "2019_06_07_billes1mu_63_JOSAA/Basler_daA1920-30um_(22030948)_20190607_122251706_0012_crop.tiff"; 
-                                                //2019_06_07_billes1mu_63_JOSAA/Basler_daA1920-30um_(22030948)_20190607_122251706_0012_crop.tiff
-                                                //uploads/Reticle_LaHC.png
-        dest_files = "test"; 
+        source_file = "2019_06_07_billes1mu_63_JOSAA/Basler_daA1920-30um_(22030948)_20190607_122251706_0012_crop.tiff";
+                                    //2019_06_07_billes1mu_63_JOSAA/Basler_daA1920-30um_(22030948)_20190607_122251706_0012_crop.tiff
+                                    //uploads/Reticle_LaHC.png
+        dest_files = "test";
         start_z = 5e-6;
         end_z = 10e-6;
         step_z = 0.5e-6;
@@ -89,16 +100,10 @@ int main(int argc, char* argv[])
         do_padding = 1;
         object = 0;
 
-        extremums[0] = 0;
-        extremums[1] = CV_PI / 2;
 
         test = true;
         output.basic_ios<char>::rdbuf(cout.rdbuf());
     }
-
-    CalculMethod calcul_method;
-    if (object == 0) calcul_method = PHASE_CALCUL;
-    else calcul_method = MODULE_CALCUL;
 
 
     string pathname = "output/propagation/" + dest_files + "/"; //The path to the destination files
@@ -137,13 +142,13 @@ int main(int argc, char* argv[])
 
     param.mag = 56.7;
     param.n0 = 1.52;
-    
 
-    int repetitions = 5;
+
+    int repetitions = 10;
     Mat reconstituted_image;
     string dest_name;
 
-    int do_sqrt = 1;
+    int do_sqrt = 0;
 
     Mat optimal_hologram;
     reconstitution_preparation(hologram, optimal_hologram, do_padding, do_sqrt);
@@ -159,15 +164,13 @@ int main(int argc, char* argv[])
 
     //We reconstitute the hologram for each z value between start_z and end_z with a step_z between each value
 
-    for (double z = start_z; z <= end_z; z+=step_z) 
+    for (double z = start_z; z <= end_z; z += step_z)
     {
         param.z = z;
-        fienup_reconstitution(optimal_hologram, reconstituted_image, param, object, extremums, repetitions); //Hologram reconstitution
+        FISTA_reconstitution(optimal_hologram, reconstituted_image, param, object, extremums, repetitions); //Hologram reconstitution
 
         int row_margin = floor(1.0 * (final_size[0] - initial_size[0]) / 2), col_margin = floor(1.0 * (final_size[1] - initial_size[1]) / 2);
         Mat(reconstituted_image, Rect(row_margin, col_margin, initial_size[0], initial_size[1])).copyTo(reconstituted_image);
-
-        complex_display(reconstituted_image, reconstituted_image, calcul_method); //Converting the final complex image into a displayable image by calculating its phase or module
 
         normalize(reconstituted_image, reconstituted_image, 0, 65535, NORM_MINMAX); //Normalizing the image so that it can be registered under an extension on 16 bits
         reconstituted_image.convertTo(reconstituted_image, CV_16U);
