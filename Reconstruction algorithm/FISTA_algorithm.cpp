@@ -1,7 +1,8 @@
 
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 
-#include "function.h"
+#include "tools.h"
+#include "algorithms.h"
 
 #include <iostream>
 #include <fstream>
@@ -151,7 +152,7 @@ int main(int argc, char* argv[])
     int do_sqrt = 0;
 
     Mat optimal_hologram;
-    reconstitution_preparation(hologram, optimal_hologram, do_padding, do_sqrt);
+    image_calibration(hologram, optimal_hologram, do_padding, do_sqrt);
 
     int initial_size[] = { hologram.rows, hologram.cols };
     int final_size[] = { optimal_hologram.rows, optimal_hologram.cols };
@@ -167,10 +168,10 @@ int main(int argc, char* argv[])
     for (double z = start_z; z <= end_z; z += step_z)
     {
         param.z = z;
-        FISTA_reconstitution(optimal_hologram, reconstituted_image, param, object, extremums, repetitions); //Hologram reconstitution
+        RI_algorithme_FISTA(optimal_hologram, reconstituted_image, param, object, extremums, repetitions); //Hologram reconstitution
 
         int row_margin = floor(1.0 * (final_size[0] - initial_size[0]) / 2), col_margin = floor(1.0 * (final_size[1] - initial_size[1]) / 2);
-        Mat(reconstituted_image, Rect(row_margin, col_margin, initial_size[0], initial_size[1])).copyTo(reconstituted_image);
+        Mat(reconstituted_image, Rect(col_margin, row_margin, initial_size[1], initial_size[0])).copyTo(reconstituted_image);
 
         normalize(reconstituted_image, reconstituted_image, 0, 65535, NORM_MINMAX); //Normalizing the image so that it can be registered under an extension on 16 bits
         reconstituted_image.convertTo(reconstituted_image, CV_16U);
@@ -182,6 +183,7 @@ int main(int argc, char* argv[])
     }
 
     params.open(pathname + "param.html", ios::out); //To write the parameters used
+    //Usefull for data base
 
     params << "<p>File name: <span id = 'filename'>" << source_file << "</span><br>" << endl;
     params << "<span id='destname' style='display:none;'>" << dest_files << "</span>" << endl;
