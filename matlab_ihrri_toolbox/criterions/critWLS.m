@@ -27,11 +27,11 @@ function [fx,gx,varargout] = critWLS(x,y,Hz,H_z,varargin)
 %   H_z: function handle to perform the backpropagation operator (see 
 %       getFresnelPropagation and propagationOperator functions).
 %
-%   In VARGARIN, 2 parameters can be given:
+%   In VARGARIN, 3 parameters can be given:
 %   - C:    a constant scaling factor that accounts for the intensity of 
 %           the incident wave |a_0|^2 as well as the detector gain and 
 %           quantum efficiency [2]. If not set or <0, the scaling factor
-%           can be computed "on-the-fly":
+%           can be computed "on-the-fly" (and returned in VARARGOUT):
 %
 %           C = <M(X),Y> / <M(X),M(X)>
 %
@@ -39,6 +39,11 @@ function [fx,gx,varargout] = critWLS(x,y,Hz,H_z,varargin)
 %
 %   - W:    diagonal elements of the inverse noise covariance matrix C^{-1}
 %           => under hypothesis of uncorrelated noise [2]. 
+%
+%   In VARGAROUT, 2 additional parameters can be extracted:
+%   - [fx,gx,c] = critWLS(x,y,Hz,H_z,c) if c < 0 or c not set
+%   - [fx,gx,residues] = critWLS(x,y,Hz,H_z,c) if c > 0
+%   - [fx,gx,c,residues] = critWLS(x,y,Hz,H_z,c)
 %
 % References
 %
@@ -63,7 +68,7 @@ function [fx,gx,varargout] = critWLS(x,y,Hz,H_z,varargin)
 
 %% Criterion parameters
 flag_c = true;
-if (nargin>3)
+if (nargin>4)
     c = varargin{1};
     if (c > 0)
         flag_c = false;
@@ -71,7 +76,7 @@ if (nargin>3)
 end
 
 flag_w = false;
-if (nargin>4)
+if (nargin>5)
     w = varargin{2};
     flag_w = true;
 end
@@ -101,8 +106,17 @@ gx = zeros(npix_W,npix_H,2);
 gx(:,:,1) = real(gxcplx);
 gx(:,:,2) = imag(gxcplx);
 
-if (flag_c)
-    varargout{1} = c;
+if (nargout > 2)
+    if (nargout > 3)
+        varargout{1} = c;
+        varargout{2} = cIopt_y;
+    else
+        if (flag_c)
+            varargout{1} = c;
+        else
+            varargout{1} = cIopt_y;
+        end
+    end
 end
 
 end

@@ -118,7 +118,8 @@ clear data;
 % xbackprop = propagationOperator(sqrt(EXPE.data)-1.0,conj(EXPE.Hz));
 % 
 % if (EXPE.flag_display)
-%     ihrri_show(imag(xbackprop), 'Backpropagation');
+%     ihrri_show(abs(xbackprop), 'Backpropagation (modulus)');
+%     ihrri_show(angle(xbackprop), 'Backpropagation (phase)');
 % end
 % 
 % % FILL EXPERIMENT REPORT STRUCT
@@ -169,6 +170,16 @@ else
     end
 end
 
+% GET THE CRITERION
+if ((strcmp(EXPE.type_obj,'dephasing') || strcmp(EXPE.type_obj,'absorbing'))...
+        && EXPE.flag_linearize)
+    Crit = @(x) (critWLSlinear(x,EXPE.data,Propag,BackPropag,-1));
+elseif ((strcmp(EXPE.type_obj,'unknown') && EXPE.flag_fienup) || strcmp(EXPE.flag_rec_meth,'Fienup'))
+    Crit = @(x) (critFienup(x,sqrt(EXPE.data),Propag,BackPropag,-1));
+elseif (strcmp(EXPE.type_obj,'unknown') && ~EXPE.flag_fienup)
+    Crit = @(x) (critWLS(x,EXPE.data,Propag,BackPropag,-1));
+end
+
 % PREPARE ALGORITHM
 switch EXPE.flag_rec_meth
     case 'RI'
@@ -179,6 +190,7 @@ switch EXPE.flag_rec_meth
         else
             EXPE.Lip = 2*max(conj(EXPE.Hz(:)).*EXPE.Hz(:));
         end
+          
         RECoptions = struct('Lip',EXPE.Lip,...
             'type_obj',EXPE.type_obj,...
             'rconst',EXPE.real_constraint,...
@@ -209,9 +221,9 @@ EXPE.RECoptions = RECoptions;
 disp('Let''s reconstruct !');
 switch EXPE.flag_rec_meth
     case 'RI'
-        [RECxopt,RECevolcost] = algoRI(EXPE.o0,EXPE.data,Propag,BackPropag,RECoptions);
+        [RECxopt,RECevolcost] = algoRI(EXPE.o0,Crit,RECoptions);
     case 'Fienup'
-        [RECxopt,RECevolcost] = algoFienupER(EXPE.o0,sqrt(EXPE.data),Propag,BackPropag,RECoptions);
+        [RECxopt,RECevolcost] = algoFienupER(EXPE.o0,Crit,RECoptions);
 end
 
 % FILL EXPERIMENT REPORT STRUCT
@@ -220,9 +232,23 @@ EXPE.xopt = RECxopt;
 
 % DISPLAY RECONSTRUCTION
 if (EXPE.flag_display)
-    ihrri_show(RECxopt,'Reconstruction');
+    %% Reconstruction
+    if (~strcmp(EXPE.type_obj,'Fienup') && ((strcmp(EXPE.type_obj,'dephasing') || strcmp(EXPE.type_obj,'absorbing'))...
+                && EXPE.flag_linearize))
+        if (strcmp(EXPE.type_obj,'dephasing'))
+            ihrri_show(RECxopt,'Reconstructed phase');
+        elseif (strcmp(EXPE.type_obj,'absorbing'))
+            ihrri_show(-RECxopt,'Reconstructed opacity');
+        end
+    else
+        RECxopt = 1.0 + RECxopt(:,:,1) + 1i * RECxopt(:,:,2);
+        ihrri_show(angle(RECxopt),'Reconstructed phase');
+        ihrri_show(abs(RECxopt),'Reconstructed modulus');
+    end
+    %% Residues
+    [fxopt,gxopt,c,residues] = Crit(EXPE.xopt);
+    ihrri_show(residues,'Residues');
 end
-% Display residues ???
 
 return;
 

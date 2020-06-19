@@ -45,6 +45,11 @@ function [fx,gx,varargout] = critWLSlinear(x,y,Gz,G_z,varargin)
 %   - W:    diagonal elements of the inverse noise covariance matrix C^{-1}
 %           => under hypothesis of uncorrelated noise [2]. 
 %
+%   In VARGAROUT, 2 additional parameters can be extracted:
+%   - [fx,gx,c] = critWLS(x,y,Hz,H_z,c) if c < 0 or c not set
+%   - [fx,gx,residues] = critWLS(x,y,Hz,H_z,c) if c > 0
+%   - [fx,gx,c,residues] = critWLS(x,y,Hz,H_z,c)
+%
 % References
 %
 % - [1] J. Fienup, “Phase retrieval algorithms: a comparison,”
@@ -68,7 +73,7 @@ function [fx,gx,varargout] = critWLSlinear(x,y,Gz,G_z,varargin)
 
 %% Criterion parameters
 flag_c = true;
-if (nargin>3)
+if (nargin>4)
     c = varargin{1};
     if (c > 0)
         flag_c = false;
@@ -76,7 +81,7 @@ if (nargin>3)
 end
 
 flag_w = false;
-if (nargin>4)
+if (nargin>5)
     w = varargin{2};
     flag_w = true;
 end
@@ -101,8 +106,17 @@ fx = sum(cuopt_y(:).^2);
 %% Gradient
 gx = 2*c*G_z(cuopt_y);
 
-if (flag_c)
-    varargout{1} = c;
+if (nargout > 2)
+    if (nargout > 3)
+        varargout{1} = c;
+        varargout{2} = cuopt_y;
+    else
+        if (flag_c)
+            varargout{1} = c;
+        else
+            varargout{1} = cuopt_y;
+        end
+    end
 end
 
 end

@@ -1,5 +1,5 @@
-function [xopt,varargout] = algoRI(x0,y,Hz,H_z,options)
-% [xopt,varargout] = algoRI(x0,y,Hz,H_z,options)
+function [xopt,varargout] = algoRI(x0,crit,options)
+% [xopt,varargout] = algoRI(x0,crit,options)
 %
 %   This function performs the FISTA algorithm [1] for phase retrieval from 
 %   intensity measurements from a transmittance plane zA propagated to a 
@@ -12,12 +12,12 @@ function [xopt,varargout] = algoRI(x0,y,Hz,H_z,options)
 %
 %                   T = 1 + X(:,:,1) + i X(:,:,2)
 %
-%   Y: data image (square root of intensity measurements).
-%
-%   Hz: function handle to perform the propagation operator  (see 
-%       getFresnelPropagation and propagationOperator functions).
-%   H_z: function handle to perform the backpropagation operator (see 
-%       getFresnelPropagation and propagationOperator functions).
+%   CRIT: function handle to the chosen criterion. It embeds:
+%       Y: data image (square root of intensity measurements).
+%       Hz: function handle to perform the propagation operator  (see 
+%           getFresnelPropagation and propagationOperator functions).
+%       H_z: function handle to perform the backpropagation operator (see 
+%            getFresnelPropagation and propagationOperator functions).
 %
 %   OPTIONS: (structure of algorithm parameters)
 %       * Lip:      Lipschitz constant for FISTA algorithm. If not set, 
@@ -35,6 +35,7 @@ function [xopt,varargout] = algoRI(x0,y,Hz,H_z,options)
 %           > 'unknown' (default): mix object.
 %               => the unkown image X represents the complex 
 %               deviation from the unit transmittance plane.
+%               => the dimensions of X are just [width,height,2].
 %       * FLAG_FIENUP:  a flag (default: false) to select de the Fienup 
 %                       criterion in the case TYPE_OBJ = 'unknown'. If
 %                       false, the weighted least squares criterion on 
@@ -95,7 +96,7 @@ function [xopt,varargout] = algoRI(x0,y,Hz,H_z,options)
 %
 
 %% Extract size (in pixels) of the field of view
-[npix_W, npix_H] = size(y);
+[npix_W, npix_H, ncomp] = size(x0);
 
 %% Extract reconstruction parameters
 
@@ -143,7 +144,7 @@ end
 
 %% Extract TYPE_OBJ and adapt hard constraints bounds 
 if (~isfield(options, 'type_obj'))
-    options.type_obj = 'unkown';
+    options.type_obj = 'unknown';
 end
 
 if (strcmp(options.type_obj,'dephasing'))
@@ -153,21 +154,21 @@ elseif (strcmp(options.type_obj,'absorbing'))
     options.rconst = [-1.0,options.rconst(2)];
 end
 
-%% Get the chosen criterion
-if (~isfield(options, 'flag_fienup'))
-    options.flag_fienup = false;
-end
-if (~isfield(options, 'w'))
-    options.w = ones(npix_H,npix_W);
-end
-
-if (strcmp(options.type_obj,'dephasing') || strcmp(options.type_obj,'absorbing'))
-    crit = @(x) (critWLSlinear(x,y,Hz,H_z,-1,options.w));
-elseif (strcmp(options.type_obj,'unknown') && options.flag_fienup)
-    crit = @(x) (critFienup(x,y,Hz,H_z,-1,options.w));
-elseif (strcmp(options.type_obj,'unknown') && ~options.flag_fienup) 
-    crit = @(x) (critWLS(x,y,Hz,H_z,-1,options.w));
-end
+% %% Get the chosen criterion
+% if (~isfield(options, 'flag_fienup'))
+%     options.flag_fienup = false;
+% end
+% if (~isfield(options, 'w'))
+%     options.w = ones(npix_H,npix_W);
+% end
+% 
+% if (strcmp(options.type_obj,'dephasing') || strcmp(options.type_obj,'absorbing'))
+%     crit = @(x) (critWLSlinear(x,y,Hz,H_z,-1,options.w));
+% elseif (strcmp(options.type_obj,'unknown') && options.flag_fienup)
+%     crit = @(x) (critFienup(x,y,Hz,H_z,-1,options.w));
+% elseif (strcmp(options.type_obj,'unknown') && ~options.flag_fienup) 
+%     crit = @(x) (critWLS(x,y,Hz,H_z,-1,options.w));
+% end
 
 %% Extract soft-thresholding features
 if (options.mu>0.0)
@@ -317,10 +318,6 @@ for i=1:options.maxiter
     %% Interpolation step
     sinterp = 0.5*(1+sqrt(1+4*(sinterp_prev^2)));
     uopt = xopt + ((sinterp_prev-1.0)/sinterp)*(xopt - xprev);
-    
-    %% Save previous iterate
-    xprev = xopt;
-    sinterp_prev = sinterp;
    
     %% Compute analysis metrics
     
@@ -339,7 +336,12 @@ for i=1:options.maxiter
     if (options.flag_evolx)
         evolx(i+1) = norm(xopt(:)-xprev(:));
     end
+    
+    %% Save previous iterate
+    xprev = xopt;
+    sinterp_prev = sinterp;
      
+    %% Display convergence information
     if options.verbose
         fprintf('Iter:\t%03d\t| ', i);
         if (options.flag_cost)
