@@ -5,6 +5,8 @@
 using namespace std;
 using namespace cv;
 
+#pragma region Reconstitution Parameters
+
 #define EXTREMUMS {-DBL_MAX, DBL_MAX} //The table with the 2 extremes for the complex image: the minimum and maximum of the constraint initialised by Infinite = DBL_MAX 
 
 enum CalculMethod //Calcul method for complexes
@@ -64,20 +66,24 @@ struct Settings
     // DIGITAL
 
     double pixel_size = 1e-6 / mag;     // Pixel size (m)
-    int width = 1024;                   // View width in pixels
-    int height = 1024;                  // View height in pixels
+    int width = 1024;                   // View width in pixels (initial image widht)
+    int height = 1024;                  // View height in pixels (initial image height)
 };
+
+#pragma endregion
+
+#pragma region Matrix Operations
 
 /*
 Multiplies 2 matrices, element by element, with one real matrix and the other in complex notation: M * (A + iB) = MA + iMB
-@param simple_mat: The real matrix to be multiplied (noy modifiable)
+@param simple_mat: The real matrix to be multiplied (not modifiable)
 @param complex_mat: The complex matrix to be multiplied (not modifiable)
 @param res_mat: The matrix resulting from the multiplication
 */
 void my_multiply(const Mat& simple_mat, const Mat& complex_mat, Mat& res_mat);
 
 /*
-Multiplies 2 matrices in complex notation, éléments par éléments: (A + iB) * (X + iY) = (AX - BY) + i(AY + BX)
+Multiplies 2 matrices in complex notation, element by element: (A + iB) * (X + iY) = (AX - BY) + i(AY + BX)
 @param mat1: The first matrix to be multiplied (not modifiable)
 @param mat2: The second matrix to be multiplied (not modifiable)
 @param res_mat: The matrix resulting from the multiplication
@@ -85,7 +91,7 @@ Multiplies 2 matrices in complex notation, éléments par éléments: (A + iB) * (X 
 void complex_multiply(const Mat& mat1, const Mat& mat2, Mat& res_mat);
 
 /*
-Multiplies one complex matrix by a complex number, éléments par éléments: (A + iB) * (X + iY) = (AX - BY) + i(AY + BX)
+Multiplies one complex matrix by a complex number, element by element: (A + iB) * (X + iY) = (AX - BY) + i(AY + BX)
 @param complex_scalar: The complex number to be multiplied (not modifiable)
 @param complex_mat: The complex matrix to be multiplied (not modifiable)
 @param res_mat: The matrix resulting from the multiplication
@@ -103,14 +109,6 @@ Adds a border around the image so that it is placed in the center of the new ima
 void padding(const Mat& initial_mat, const int x, const int y, const int pad, Mat& resized_mat);
 
 /*
-Gets the optimal size for the Fourier transform and adds a margin if needed
-@param initial_mat: The matrix containing the image to be optimized in size (not modifiable)
-@param pad: The border (int) to be added around the image (not modifiable)
-@param final_mat: The matrix resulting from this change
-*/
-void optimal_FT(const Mat& initial_mat, const int pad, Mat& final_mat);
-
-/*
 Allows to convert a complex image into a displayable image (module or phase)
 @param initial_mat: The complex matrix to be displayed (not modifiable)
 @param final_mat: The matrix resulting from this change
@@ -119,12 +117,28 @@ Allows to convert a complex image into a displayable image (module or phase)
 */
 void complex_display(const Mat& initial_mat, Mat& final_mat, CalculMethod method, bool log_scale = false);
 
+#pragma endregion
+
+#pragma region Fourier Transform Tools
+
 /*
-Allows to swap the 4 quadrants of the image (the 4 quarters of the image)
+Gets the optimal size for the Fourier transform and adds a margin if needed
+@param initial_mat: The matrix containing the image to be optimized in size (not modifiable)
+@param pad: The border (int) to be added around the image (not modifiable)
+@param final_mat: The matrix resulting from this change
+*/
+void optimal_FT(const Mat& initial_mat, const int pad, Mat& final_mat);
+
+/*
+Allows to swap the 4 quadrants of the image (the 4 quarters of the image) to replace the origin in the image center (initially top left)
 @param initial_mat: The matrix containing the image to be modified (not modifiable)
 @param final_mat: The modified matrix
 */
-void swap_quadrants(const Mat& initial_mat, Mat& final_mat);
+void FT_shift(const Mat& initial_mat, Mat& final_mat);
+
+#pragma endregion
+
+#pragma region Reconstruction Operators
 
 /*
 Allows to create a propagation and backpropagation kernel according to different parameters
@@ -139,46 +153,15 @@ Allows to create a propagation and backpropagation kernel according to different
 @param |----> true: Used in the context of TYPE_HOLOGRAM='intensity' only. A linearized model of intensity measurement can be applied. It yields a modified/simplified Fresnel kernel depending on the TYPE_OBJ parameter. In this case, FLAG_PHASEREF will be set to false
 @param object_type: (to set only if TYPE_LINEARIZE = true) (by default: DEPHASING)
 */
-void fresnel_propagation_kernel(const Settings& setting, Mat& Hz, Mat& H_z, bool flag_phaseref = false, HOLOGRAM_TYPE hologram_type = COMPLEX, bool flag_linearize = false, OBJ_TYPE object_type = DEPHASING);
+void get_fresnel_propagator(const Settings& setting, Mat& Hz, Mat& H_z, bool flag_phaseref = false, HOLOGRAM_TYPE hologram_type = COMPLEX, bool flag_linearize = false, OBJ_TYPE object_type = DEPHASING);
 
 /*
-Prepare the hologram image by doing padding to have a good size
+Prepare the hologram image by doing the square root or not, normalizing the hologram (division by the mean value) and doing padding to have a good size
 @param initial_hologram: The matrix containing the initial hologram data (not modifiable)
 @param optimal_hologram: The matrix containing the hologram with the good size to be reconstitued
 @param do_padding: If equal to 1, we make padding by doubling the dimensions, otherwise we don't make padding
 @param do_sqrt: If equal to 1, we make the square root on the hologram data, otherwise we don't make the square root
 */
-void reconstitution_preparation(const Mat& initial_hologram, Mat& optimal_hologram, int do_padding, int do_sqrt);
+void image_calibration(const Mat& initial_hologram, Mat& optimal_hologram, int do_padding, int do_sqrt);
 
-/*
-Allows to reconstruct an image from a hologram using the "Fienup" method
-@param hologram: The matrix containing the hologram to be reconstituted with the good size (not modifiable)
-@param reconstituted_image: The matrix containing the reconstituted image, but this image is not resize !
-@param setting: The parameters to be used to reconstitute the hologram
-@param object: The "type" of the object: 0 = phase object or 1 = absorbing object
-@param complex_extremum: The table containing the 4 extremes for the complex image: the minimum and maximum of the real part then of the imaginary part (Infinite = DBL_MAX)
-@param repetitions: The number of repetitions to be done in the algorithm
-*/
-void fienup_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, double complex_extremum[], int repetitions);
-
-/*
-Allows to reconstruct an image from a hologram using the "ISTA" method
-@param hologram: The matrix containing the hologram to be reconstituted with the good size (not modifiable)
-@param reconstituted_image: The matrix containing the reconstituted image, but this image is not resize !
-@param setting: The parameters to be used to reconstitute the hologram
-@param object: The "type" of the object: 0 = phase object or 1 = absorbing object
-@param extremum: The table containing the 2 extremes for the image (Infinite = DBL_MAX)
-@param repetitions: The number of repetitions to be done in the algorithm
-*/
-void ISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, double extremum[], int repetitions);
-
-/*
-Allows to reconstruct an image from a hologram using the "FISTA" method
-@param hologram: The matrix containing the hologram to be reconstituted with the good size (not modifiable)
-@param reconstituted_image: The matrix containing the reconstituted image, but this image is not resize !
-@param setting: The parameters to be used to reconstitute the hologram
-@param object: The "type" of the object: 0 = phase object or 1 = absorbing object
-@param extremum: The table containing the 2 extremes for the image (Infinite = DBL_MAX)
-@param repetitions: The number of repetitions to be done in the algorithm
-*/
-void FISTA_reconstitution(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting, int object, double extremum[], int repetitions);
+#pragma endregion

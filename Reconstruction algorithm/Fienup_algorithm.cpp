@@ -1,7 +1,8 @@
 
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 
-#include "function.h"
+#include "tools.h"
+#include "algorithms.h"
 
 #include <iostream>
 #include <fstream>
@@ -146,7 +147,7 @@ int main(int argc, char* argv[])
     int do_sqrt = 1;
 
     Mat optimal_hologram;
-    reconstitution_preparation(hologram, optimal_hologram, do_padding, do_sqrt);
+    image_calibration(hologram, optimal_hologram, do_padding, do_sqrt);
 
     int initial_size[] = { hologram.rows, hologram.cols };
     int final_size[] = { optimal_hologram.rows, optimal_hologram.cols };
@@ -162,10 +163,10 @@ int main(int argc, char* argv[])
     for (double z = start_z; z <= end_z; z+=step_z) 
     {
         param.z = z;
-        fienup_reconstitution(optimal_hologram, reconstituted_image, param, object, extremums, repetitions); //Hologram reconstitution
+        fienup_algorithm(optimal_hologram, reconstituted_image, param, object, extremums, repetitions); //Hologram reconstitution
 
         int row_margin = floor(1.0 * (final_size[0] - initial_size[0]) / 2), col_margin = floor(1.0 * (final_size[1] - initial_size[1]) / 2);
-        Mat(reconstituted_image, Rect(row_margin, col_margin, initial_size[0], initial_size[1])).copyTo(reconstituted_image);
+        Mat(reconstituted_image, Rect(col_margin, row_margin, initial_size[1], initial_size[0])).copyTo(reconstituted_image);
 
         complex_display(reconstituted_image, reconstituted_image, calcul_method); //Converting the final complex image into a displayable image by calculating its phase or module
 
@@ -179,6 +180,7 @@ int main(int argc, char* argv[])
     }
 
     params.open(pathname + "param.html", ios::out); //To write the parameters used
+    //Usefull for data base
 
     params << "<p>File name: <span id = 'filename'>" << source_file << "</span><br>" << endl;
     params << "<span id='destname' style='display:none;'>" << dest_files << "</span>" << endl;
