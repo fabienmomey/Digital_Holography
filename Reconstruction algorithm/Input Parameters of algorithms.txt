@@ -21,7 +21,7 @@ The different arguments to put in input to execute this program :
 
 
 ************************************************************************************************************
-Regularised inversion algorithm (FISTA)
+Regularized inversion algorithm (FISTA)
 ************************************************************************************************************
 
 The different arguments to put in input to execute this program :
