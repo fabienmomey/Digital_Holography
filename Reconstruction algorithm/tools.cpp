@@ -1,4 +1,14 @@
 
+///
+/// \file tools.cpp
+/// 
+/// \author Yoann MASSET - Fabien MOMEY
+/// \version Final version
+/// \date June 20th 2020
+/// 
+/// \brief File grouping the definitions of tools useful for image reconstruction 
+/// 
+
 #include "tools.h"
 
 #include <iostream>

@@ -1,4 +1,14 @@
 
+///
+/// \file algorithms.cpp 
+/// 
+/// \author Yoann MASSET - Fabien MOMEY
+/// \version Final version
+/// \date June 20th 2020
+/// 
+/// \brief File grouping the definitions of reconstruction algorithm functions
+/// 
+
 #include "tools.h"
 #include "algorithms.h"
 
@@ -8,6 +18,26 @@
 
 using namespace std;
 using namespace cv;
+
+#pragma region Simple Backpropagation
+
+void simple_backpropagation(const Mat& optimal_hologram, Mat& reconstituted_image, Settings& setting)
+{
+    Mat Hz, H_z; //Kernels
+    Mat FT, FT_product, inverse_FT; //Fourier matrix
+    int final_size[] = { optimal_hologram.rows, optimal_hologram.cols };
+
+    get_fresnel_propagator(setting, Hz, H_z); //We recover the 2 kernel according to the above parameters
+
+    dft(optimal_hologram, FT, DFT_COMPLEX_OUTPUT);
+    complex_multiply(FT, H_z, FT_product);
+    idft(FT_product, inverse_FT, DFT_COMPLEX_OUTPUT);
+
+    reconstituted_image = inverse_FT / (final_size[0] * final_size[1]);
+}
+
+#pragma endregion
+
 
 #pragma region Fienup Algorithm
 
@@ -117,7 +147,7 @@ void RI_algorithme_ISTA(const Mat& optimal_hologram, Mat& reconstituted_image, S
 
     for (int i = 0; i < repetitions; i++)
     {
-        cout << i << endl;
+        cout << i << " ";
 
         //Calcul of the direct model with propagation
         dft(hologram_iteration, FT, DFT_COMPLEX_OUTPUT);
@@ -153,6 +183,7 @@ void RI_algorithme_ISTA(const Mat& optimal_hologram, Mat& reconstituted_image, S
         hologram_iteration = max(hologram_iteration, extremum[0]); //min
         hologram_iteration = min(hologram_iteration, extremum[1]); //max
     }
+    cout << endl;
     hologram_iteration.copyTo(reconstituted_image);
 }
 
@@ -191,7 +222,7 @@ void RI_algorithme_FISTA(const Mat& optimal_hologram, Mat& reconstituted_image, 
 
     for (int i = 0; i < repetitions; i++)
     {
-        cout << i << endl;
+        cout << i << " ";
 
         //Calcul of the direct model with propagation
         dft(u, FT, DFT_COMPLEX_OUTPUT);
@@ -233,6 +264,7 @@ void RI_algorithme_FISTA(const Mat& optimal_hologram, Mat& reconstituted_image, 
         s_prev = s;
         hologram_iteration.copyTo(hologram_iteration_prev);
     }
+    cout << endl;
     hologram_iteration.copyTo(reconstituted_image);
 }
 

@@ -1,4 +1,29 @@
 
+///
+/// \file Fienup_algorithm.cpp
+/// 
+/// \author Yoann MASSET - Fabien MOMEY
+/// \version Final version
+/// \date June 20th 2020
+/// 
+/// \brief Main file for reconstruction with the Fienup method 
+/// 
+/// The different arguments to put in input to execute this program :
+/// 
+/// argv[0]: The name of the executable \n
+/// argv[1] : The path to the source image \n
+/// argv[2] : The path to the destination folder \n
+/// argv[3] : The beginning of the interval of z \n
+/// argv[4] : The end of the interval of z \n
+/// argv[5] : The step between each value of z \n
+/// argv[6] : The wavelength used \n
+/// argv[7] : The pixel size \n
+/// argv[8] : If you want to do padding on the image or not: 1 = padding, 0 = not \n
+/// argv[9] : The "type" of the object : 0 = phase object or 1 = absorbing object \n
+/// argv[10] : The minimum value of the constraint \n
+/// argv[11] : The maximum value of the constraint \n
+/// 
+
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 
 #include "tools.h"
@@ -12,23 +37,6 @@
 using namespace std;
 using namespace cv;
 namespace fs = std::experimental::filesystem;
-
-/*
-    The different arguments to put in input to execute this program :
-
-    argv[0]: The name of the executable 
-    argv[1]: The path to the source image 
-    argv[2]: The path to the destination folder
-    argv[3]: The beginning of the interval of z
-    argv[4]: The end of the interval of z
-    argv[5]: The step between each value of z
-    argv[6]: The wavelength used
-    argv[7]: The pixel size
-    argv[8]: If you want to do padding on the image or not: 1 = padding, 0 = not
-    argv[9]: The "type" of the object: 0 = phase object or 1 = absorbing object
-    argv[10]: The minimum value of the constraint 
-    argv[11]: The maximum value of the constraint 
-*/
 
 int main(int argc, char* argv[])
 {
