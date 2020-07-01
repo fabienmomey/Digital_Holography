@@ -18,7 +18,7 @@
 
 #include <iostream>
 #include <fstream>
-#include <opencv2/highgui.hpp>
+#include <opencv2/highgui.hpp> 
 #include <experimental/filesystem>
 
 using namespace std;
@@ -194,7 +194,8 @@ int main()
 		int row_margin = floor(1.0 * (final_size[0] - initial_size[0]) / 2), col_margin = floor(1.0 * (final_size[1] - initial_size[1]) / 2);
 		Mat(reconstituted_image, Rect(col_margin, row_margin, initial_size[1], initial_size[0])).copyTo(reconstituted_image);
 
-		if (method_choice != 3) complex_display(reconstituted_image, reconstituted_image, calcul_method); //Converting the final complex image into a displayable image by calculating its phase or module
+		if (method_choice == 1 || method_choice == 2) complex_display(reconstituted_image, reconstituted_image, calcul_method); //Converting the final complex image into a displayable image by calculating its phase or module
+		// Only for simple backpropagation and Fienup
 
 		normalize(reconstituted_image, reconstituted_image, 0, 65535, NORM_MINMAX); //Normalizing the image so that it can be registered under an extension on 16 bits
 		reconstituted_image.convertTo(reconstituted_image, CV_16U);

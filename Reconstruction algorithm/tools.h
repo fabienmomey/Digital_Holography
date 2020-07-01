@@ -9,7 +9,7 @@
 /// \brief File grouping the declarations of tools useful for image reconstruction 
 /// 
 
-#include <opencv2/highgui.hpp>
+#include <opencv2/highgui.hpp> 
 #include <opencv2/opencv.hpp>
 
 using namespace std;

@@ -9,7 +9,7 @@
 /// \brief File grouping the declarations of reconstruction algorithm functions
 /// 
 
-#include <opencv2/highgui.hpp>
+#include <opencv2/highgui.hpp> 
 #include <opencv2/opencv.hpp>
 
 using namespace std;

@@ -1,0 +1,22 @@
+
+/// 
+/// \file Doc.cpp 
+/// 
+/// \author Yoann MASSET - Fabien MOMEY
+/// \version Final version
+/// \date June 20th 2020
+/// 
+/// \mainpage Documentation page
+/// 
+/// \brief \b Documentation \b for \b reconstruction \b algorithm \b code \n\n
+/// 
+/// \li This documentation lists all the functions and other objects used for image reconstruction algorithms taken by holographic microscopy \n\n
+/// 
+/// \li The tools.h and tools.cpp files declare and define all the tools needed for hologram reconstruction : the different reconstruction parameters, matrix manipulation, Fourier transform tools and reconstruction operators \n\n
+/// 
+/// \li The files algorithms.h and algorithms.cpp declare and define the functions necessary for the reconstruction with the different methods : the simple backpropagation method, the Fienup method and the regularized inversion method \n\n
+/// 
+/// \li The files Fienup_algorithm.cpp and RI_algorithm.cpp are the main files for the reconstruction, they are the ones that will be executed using the previous files \n\n
+/// 
+/// \li Finally the file test.cpp allows to test the different methods with the 2 hologram types : dephasing or absorbing
+///
